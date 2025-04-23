@@ -1,0 +1,29 @@
+{
+  "name": "LLM-JSON-Translator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.ts",
+  "scripts": {
+    "start": "bun run src/main.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "bun@1.2.1",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/lodash": "^4.17.16",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@node-rs/xxhash": "^1.7.6",
+    "class-validator": "^0.14.1",
+    "dotenv": "^16.5.0",
+    "lodash": "^4.17.21",
+    "openai": "^4.95.1",
+    "redis": "^4.7.0"
+  }
+}
