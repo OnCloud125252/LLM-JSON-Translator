@@ -15,4 +15,6 @@ dotenvConfig();
   info("\nJSON Translated");
 
   console.log(JSON.stringify(translatedJson, null, 2));
+
+  process.exit(0);
 })();
