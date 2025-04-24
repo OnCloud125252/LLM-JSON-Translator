@@ -32,7 +32,7 @@ bun install
 Start the Redis server in a Docker container:
 
 ```bash
-docker compose -f ./src/docker-compose.yml up -d
+docker compose up -d
 ```
 
 This will launch Redis on port 10001 with the following credentials:
