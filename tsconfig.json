@@ -20,7 +20,7 @@
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "node"
   },
-  "include": ["src/**/*.ts", "modules/**/*.ts"],
+  "include": ["src/**/*.ts", "modules/**/*.ts", "examples/**/*.ts"],
   "exclude": [
     ".vscode",
     "node_modules",
