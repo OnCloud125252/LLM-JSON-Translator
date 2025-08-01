@@ -1,5 +1,5 @@
 {
-  "name": "LLM-JSON-Translator",
+  "name": "llm-json-translator",
   "version": "1.0.0",
   "description": "",
   "main": "src/main.ts",
