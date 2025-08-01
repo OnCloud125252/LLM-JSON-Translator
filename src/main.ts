@@ -40,7 +40,7 @@ const webServerLogger = new Logger({
 
       throw new ClientError(
         {
-          errorMessage: "Invalid endpoint",
+          errorMessage: "Invalid request endpoint or method",
           errorObject: { endpoint: url.pathname, method: request.method },
         },
         StatusCodes.NOT_FOUND,
@@ -49,7 +49,5 @@ const webServerLogger = new Logger({
     error: globalErrorHandler,
   });
 
-  webServerLogger.info(
-    `Listening on http://${server.hostname}:${server.port}`,
-  );
+  webServerLogger.info(`Listening on http://${server.hostname}:${server.port}`);
 })();
