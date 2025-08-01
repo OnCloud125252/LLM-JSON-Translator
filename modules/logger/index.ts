@@ -2,6 +2,7 @@ import { isNumber } from "class-validator";
 import { isNotBlankString } from "modules/classValidator/customDecorator/IsNotBlankString";
 import { ClientError } from "modules/clientError";
 import { isClientError } from "modules/clientError/isClientError";
+import chalk from "chalk";
 
 export enum LogLevel {
   DEBUG = 0,
@@ -35,19 +36,37 @@ class Logger {
     const parts: string[] = [];
 
     if (this.config.timestamp) {
-      parts.push(`[${new Date().toISOString()}]`);
+      parts.push(chalk.gray(`[${new Date().toISOString()}]`));
     }
 
-    parts.push(`[${level}]`);
+    // Color the level based on its type
+    let coloredLevel: string;
+    switch (level) {
+      case "DEBUG":
+        coloredLevel = chalk.blue(`[${level}]`);
+        break;
+      case "INFO":
+        coloredLevel = chalk.green(`[${level}]`);
+        break;
+      case "WARN":
+        coloredLevel = chalk.yellow(`[${level}]`);
+        break;
+      case "ERROR":
+        coloredLevel = chalk.red(`[${level}]`);
+        break;
+      default:
+        coloredLevel = `[${level}]`;
+    }
+    parts.push(coloredLevel);
 
     if (this.config.prefix) {
-      parts.push(`[${this.config.prefix}]`);
+      parts.push(chalk.magenta(`[${this.config.prefix}]`));
     }
 
     parts.push(message);
 
     if (context && Object.keys(context).length > 0) {
-      parts.push(JSON.stringify(context, null, 2));
+      parts.push(chalk.dim(JSON.stringify(context, null, 2)));
     }
 
     return parts.join(" ");
