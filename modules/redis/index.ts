@@ -15,6 +15,7 @@ export class RedisClient {
         RedisClient.redisClient = createClient({ url: redisUrl });
         await RedisClient.redisClient.connect();
         RedisClient.isInitialized = true;
+        logger.info("Connected to Redis");
       }
     } catch (_error) {
       logger.error("Failed to connect to Redis");

@@ -1,22 +1,47 @@
 import { config as dotenvConfig } from "dotenv";
+import { StatusCodes } from "http-status-codes";
 
-import { translateJson } from "modules/translate-json";
 import { RedisClient } from "modules/redis";
-import { sampleData } from "modules/sample-data";
 import { Logger } from "modules/logger";
+import { ClientError } from "modules/clientError";
+import { globalErrorHandler } from "modules/server/global-error-handler";
+import { TranslateJson } from "./server/controller/translateJson";
 
 dotenvConfig();
 
-const logger = new Logger().createChild("main");
+const webServerLogger = new Logger().createChild("web-server");
 
 (async () => {
   await new RedisClient().init(process.env.REDIS_URL);
 
-  const translatedJson = await translateJson(sampleData.a, 10);
+  const server = Bun.serve({
+    hostname: process.env.HOST || "127.0.0.1",
+    port: process.env.PORT || 3000,
+    async fetch(request) {
+      const url = new URL(request.url);
+      switch (url.pathname) {
+        case TranslateJson.path: {
+          switch (request.method) {
+            case TranslateJson.method: {
+              return new TranslateJson().handler(request);
+            }
+          }
+          break;
+        }
+      }
 
-  logger.info("\nJSON Translated");
+      throw new ClientError(
+        {
+          errorMessage: "Invalid endpoint",
+          errorObject: { endpoint: url.pathname, method: request.method },
+        },
+        StatusCodes.NOT_FOUND,
+      );
+    },
+    error: globalErrorHandler,
+  });
 
-  console.log(JSON.stringify(translatedJson, null, 2));
-
-  process.exit(0);
+  webServerLogger.info(
+    `Listening on http://${server.hostname}:${server.port} ...`,
+  );
 })();

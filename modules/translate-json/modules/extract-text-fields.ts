@@ -5,6 +5,7 @@ import { isPureText } from "./is-pure-text";
 export function extractTextFields(
   obj: any,
   batchSize: number,
+  disallowedTranslateKeys?: string[],
 ): TranslationBatch[] {
   const allTextFields: { path: string; text: string }[] = [];
 
@@ -14,9 +15,12 @@ export function extractTextFields(
         const newPath = path ? `${path}.${key}` : key;
         const value = obj[key];
 
-        if (isPureText(value) && shouldSkipTranslation(key)) {
+        if (
+          isPureText(value) &&
+          !shouldSkipTranslation(key, disallowedTranslateKeys)
+        ) {
           allTextFields.push({ path: newPath, text: value });
-        } else if (shouldSkipTranslation(key)) {
+        } else if (!shouldSkipTranslation(key, disallowedTranslateKeys)) {
           collectTextFields(value, newPath);
         }
       }
