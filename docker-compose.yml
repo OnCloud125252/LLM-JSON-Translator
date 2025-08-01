@@ -1,14 +1,25 @@
 services:
+  app:
+    container_name: llm-json-translator
+    image: oncloud125252/llm-json-translator
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_ENVIRONMENT=production
+      - OPENAI_API_KEY=<YOUR-OPENAI-API-KEY>
+      - REDIS_URL=redis://default:JUafjt@llm-json-translator-redis:6379
+      - HOST=0.0.0.0
+      - PORT=3000
+    restart: unless-stopped
+
   redis:
     container_name: llm-json-translator-redis
     image: redis:7-alpine
-    ports:
-      - "10001:6379"
     volumes:
       - redis_data:/data
     environment:
-      - REDIS_PASSWORD=ABC
-    restart: always
+      - REDIS_PASSWORD=JUafjt
+    restart: unless-stopped
 
 volumes:
   redis_data:
