@@ -4,6 +4,7 @@ import { ClientError } from "modules/clientError";
 import { handleRecursiveError } from "modules/clientError/handleRecursiveError";
 import { Logger } from "modules/logger";
 import { translateJson } from "modules/translate-json";
+import { TargetLanguage } from "modules/translate-json/modules/translate-batch";
 
 export class TranslateJson {
   static path = "/translate";
@@ -17,7 +18,7 @@ export class TranslateJson {
     try {
       const body = await request.json();
 
-      const { json, disallowedTranslateKeys } = body;
+      const { json, targetLanguage, disallowedTranslateKeys } = body;
 
       if (typeof json !== "object") {
         throw new ClientError(
@@ -36,10 +37,33 @@ export class TranslateJson {
         );
       }
 
+      if (
+        typeof targetLanguage !== "string" ||
+        !Object.values(TargetLanguage).includes(
+          targetLanguage as TargetLanguage,
+        )
+      ) {
+        throw new ClientError(
+          {
+            errorMessage: "Body didn't meet requirements",
+            errorObject: {
+              invalidField: [
+                {
+                  fieldName: "targetLanguage",
+                  validFieldValue: Object.values(TargetLanguage).join(", "),
+                },
+              ],
+            },
+          },
+          StatusCodes.BAD_REQUEST,
+        );
+      }
+
       const time0 = Date.now();
       const translatedJson = await translateJson({
         jsonData: json,
         batchSize: 10,
+        targetLanguage: targetLanguage as TargetLanguage,
         disallowedTranslateKeys,
       });
       const time1 = Date.now();

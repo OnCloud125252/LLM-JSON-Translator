@@ -1,6 +1,6 @@
 import { Logger } from "modules/logger";
 import { extractTextFields } from "./modules/extract-text-fields";
-import { translateBatch } from "./modules/translate-batch";
+import { TargetLanguage, translateBatch } from "./modules/translate-batch";
 import { updateJsonWithTranslations } from "./modules/update-json-with-translations";
 import { TranslationBatch } from "./types/translation-batch";
 
@@ -11,10 +11,12 @@ const logger = new Logger({
 export async function translateJson({
   jsonData,
   batchSize,
+  targetLanguage,
   disallowedTranslateKeys,
 }: {
   jsonData: any;
   batchSize: number;
+  targetLanguage: TargetLanguage;
   disallowedTranslateKeys?: string[];
 }): Promise<any> {
   const batches = extractTextFields(
@@ -34,7 +36,7 @@ export async function translateJson({
     );
 
     const results = await Promise.all(
-      chunk.map((batch) => translateBatch(batch)),
+      chunk.map((batch) => translateBatch(batch, targetLanguage)),
     );
 
     for (const batchResult of results) {
