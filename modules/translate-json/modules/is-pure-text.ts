@@ -14,6 +14,7 @@ import {
   isNumberString, // Checks if the string is a valid hex-encoded representation of a MongoDB ObjectId.
   isURL, // Checks if the string is an url.
   isUUID, // Checks if the string is a UUID (version 3, 4 or 5).
+  isLocale, // Checks if the string is a valid locale
 } from "class-validator";
 
 export function isPureText(value: string): boolean {
@@ -138,7 +139,8 @@ export function isPureText(value: string): boolean {
       isURL(value) ||
       isUUID(value, 3) ||
       isUUID(value, 4) ||
-      isUUID(value, 5)
+      isUUID(value, 5) ||
+      isLocale(value)
     )
   );
 }
