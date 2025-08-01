@@ -5,7 +5,10 @@ import { RedisClient } from "modules/redis";
 (async () => {
   await new RedisClient().init(process.env.REDIS_URL);
 
-  const translatedJson = await translateJson(sampleData.a, 10);
+  const translatedJson = await translateJson({
+    jsonData: sampleData.a,
+    batchSize: 10,
+  });
 
   console.log(JSON.stringify(translatedJson, null, 2));
 })();
