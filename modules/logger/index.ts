@@ -144,7 +144,11 @@ class Logger {
     this.log(LogLevel.ERROR, "ERROR", message, errorContext);
   }
 
-  createChild(prefix: string): Logger {
+  createChild(prefix?: string): Logger {
+    if (!prefix) {
+      return this;
+    }
+
     const cleanPrefix = prefix.trim();
 
     if (isNotBlankString(cleanPrefix)) {

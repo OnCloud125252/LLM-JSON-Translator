@@ -16,11 +16,15 @@ export function globalErrorHandler(error: any | ClientError | Error) {
       clientError.payload?.errorMessage === "Invalid request endpoint or method"
     ) {
       const errorObject = clientError.payload?.errorObject as any;
-      globalErrorHandlerLogger.error(
-        `Invalid request endpoint or method: ${errorObject.method} ${errorObject.endpoint}`,
-      );
+      globalErrorHandlerLogger
+        .createChild(clientError.requestUuid)
+        .error(
+          `Invalid request endpoint or method: ${errorObject.method} ${errorObject.endpoint}`,
+        );
     } else {
-      globalErrorHandlerLogger.error("Client error:", error);
+      globalErrorHandlerLogger
+        .createChild(clientError.requestUuid)
+        .error("Client error:", error);
     }
 
     return new Response(
@@ -35,7 +39,9 @@ export function globalErrorHandler(error: any | ClientError | Error) {
     );
   }
 
-  globalErrorHandlerLogger.error("Unexpected error:", error);
+  globalErrorHandlerLogger
+    .createChild("unknown-error")
+    .error("Unexpected error:", error);
   return new Response(
     JSON.stringify({
       errorMessage: "Unexpected error occurred. Please try again.",

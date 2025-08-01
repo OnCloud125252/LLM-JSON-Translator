@@ -12,6 +12,7 @@ export class ClientError extends Error {
     errorMessage?: string;
   };
   code: StatusCodes;
+  requestUuid?: string;
 
   constructor(
     payload?: {
@@ -19,9 +20,11 @@ export class ClientError extends Error {
       errorMessage?: string;
     },
     code?: StatusCodes,
+    requestUuid?: string,
   ) {
     super();
     this.payload = { ...payload };
     this.code = code || StatusCodes.INTERNAL_SERVER_ERROR;
+    this.requestUuid = requestUuid;
   }
 }

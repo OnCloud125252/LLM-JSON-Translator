@@ -7,14 +7,87 @@ import { translateJson } from "modules/translate-json";
 import { TargetLanguage } from "modules/translate-json/modules/translate-batch";
 
 export class TranslateJson {
-  static path = "/translate";
-  static method = "POST";
+  static readonly path = "/translate";
+  static readonly method = "POST";
 
-  logger = new Logger({
+  private readonly request: Request;
+  private readonly requestUuid?: string;
+  private readonly webServerResponseLogger: Logger;
+  private readonly logger = new Logger({
     prefix: "controller",
   }).createChild("translate");
+  private haveRequest() {
+    if (!this.request) {
+      throw new Error("Request is undefined");
+    }
+  }
 
-  async handler(request: Request) {
+  constructor({
+    request,
+    webServerResponseLogger,
+    requestUuid,
+  }: {
+    request: Request;
+    webServerResponseLogger: Logger;
+    requestUuid?: string;
+  }) {
+    this.request = request;
+    this.webServerResponseLogger = webServerResponseLogger;
+    this.requestUuid = requestUuid;
+  }
+
+  middleware() {
+    const request = this.request;
+    this.haveRequest();
+
+    const headers = request.headers;
+
+    if (headers.get("Content-Type") !== "application/json") {
+      throw new ClientError(
+        {
+          errorMessage: "Invalid content type, must be application/json",
+          errorObject: { contentType: headers.get("Content-Type") },
+        },
+        StatusCodes.BAD_REQUEST,
+        this.requestUuid,
+      );
+    }
+
+    return new TranslateJson({
+      request,
+      webServerResponseLogger: this.webServerResponseLogger,
+      requestUuid: this.requestUuid,
+    });
+  }
+
+  guard() {
+    const request = this.request;
+    this.haveRequest();
+
+    const headers = request.headers;
+
+    if (headers.get("Authorization") !== `Bearer ${process.env.API_KEY}`) {
+      throw new ClientError(
+        {
+          errorMessage: "Invalid API key",
+          errorObject: { apiKey: headers.get("Authorization") },
+        },
+        StatusCodes.UNAUTHORIZED,
+        this.requestUuid,
+      );
+    }
+
+    return new TranslateJson({
+      request,
+      webServerResponseLogger: this.webServerResponseLogger,
+      requestUuid: this.requestUuid,
+    });
+  }
+
+  async handler() {
+    const request = this.request;
+    this.haveRequest();
+
     try {
       const body = await request.json();
 
@@ -34,6 +107,7 @@ export class TranslateJson {
             },
           },
           StatusCodes.BAD_REQUEST,
+          this.requestUuid,
         );
       }
 
@@ -56,6 +130,7 @@ export class TranslateJson {
             },
           },
           StatusCodes.BAD_REQUEST,
+          this.requestUuid,
         );
       }
 
@@ -68,7 +143,10 @@ export class TranslateJson {
       });
       const time1 = Date.now();
 
-      this.logger.info(`Translated JSON in ${time1 - time0}ms`);
+      this.logger.debug(`Translated JSON in ${time1 - time0}ms`);
+      this.webServerResponseLogger.info(
+        `Translated JSON in ${time1 - time0}ms`,
+      );
 
       return new Response(JSON.stringify(translatedJson), {
         status: StatusCodes.OK,
@@ -85,6 +163,7 @@ export class TranslateJson {
             errorMessage: "Request body is not valid JSON",
           },
           StatusCodes.BAD_REQUEST,
+          this.requestUuid,
         );
       }
 
@@ -95,6 +174,7 @@ export class TranslateJson {
           errorMessage: "Failed to translate JSON",
         },
         StatusCodes.BAD_REQUEST,
+        this.requestUuid,
       );
     }
   }
