@@ -25,11 +25,7 @@ ENV APP_ENVIRONMENT=production
 
 # Copy production dependencies and source code
 COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=checker /app/src ./src
-COPY --from=checker /app/package.json \
-     --from=checker /app/bun.lock \
-     --from=checker /app/tsconfig.json \
-     ./
+COPY . .
 
 # Expose the application port
 EXPOSE 3000
