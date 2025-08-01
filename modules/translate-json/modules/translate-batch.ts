@@ -1,14 +1,17 @@
 import { xxh3 } from "@node-rs/xxhash";
 import OpenAI from "openai";
+import { isJSON } from "class-validator";
 
+import { Logger } from "modules/logger";
 import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
-import { info } from "modules/info";
-import { RedisClient } from "../modules/redis";
+import { RedisClient } from "modules/redis";
 import { TranslationBatch } from "../types/translation-batch";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const logger = new Logger().createChild("translate-batch");
 
 export async function translateBatch(
   batch: TranslationBatch,
@@ -20,10 +23,10 @@ export async function translateBatch(
     const key = String(xxh3.xxh128(item.text));
     const cached = await RedisClient.get(key);
     if (cached) {
-      info(`Using cached translation for ${item.path}.`);
+      logger.info(`Using cached translation for ${item.path}.`);
       results.push({ path: item.path, text: cached });
     } else {
-      info(`Translating ${item.path}.`);
+      logger.info(`Translating ${item.path}.`);
       toTranslate.push(item);
     }
   }
@@ -70,19 +73,28 @@ export async function translateBatch(
       },
     },
   });
-  const endTime = Date.now();
 
-  info(`Translated ${toTranslate.length} items in ${endTime - startTime} ms.`);
+  if (isJSON(completion.output_text) === false) {
+    logger.warn(
+      "Invalid output_text: Expected a non-null JSON object. Retrying translation.",
+    );
+  }
 
   const newResults = JSON.parse(completion.output_text)
     .results as TranslationBatch;
+
+  const endTime = Date.now();
+
+  logger.info(
+    `Translated ${toTranslate.length} items in ${endTime - startTime} ms.`,
+  );
 
   for (const tr of newResults) {
     const orig = toTranslate.find((t) => t.path === tr.path);
     if (orig) {
       const key = String(xxh3.xxh128(orig.text));
       await RedisClient.set(key, tr.text);
-      info(`Cached translation for ${orig.path}.`);
+      logger.info(`Cached translation for ${orig.path}.`);
     }
     results.push(tr);
   }

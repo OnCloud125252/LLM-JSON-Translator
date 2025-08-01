@@ -1,5 +1,5 @@
 import { TranslationBatch } from "../types/translation-batch";
-import { isKeyAllowed } from "./is-key-allowed";
+import { shouldSkipTranslation } from "./should-skip-translation";
 import { isPureText } from "./is-pure-text";
 
 export function extractTextFields(
@@ -14,9 +14,9 @@ export function extractTextFields(
         const newPath = path ? `${path}.${key}` : key;
         const value = obj[key];
 
-        if (isPureText(value) && isKeyAllowed(key)) {
+        if (isPureText(value) && shouldSkipTranslation(key)) {
           allTextFields.push({ path: newPath, text: value });
-        } else if (isKeyAllowed(key)) {
+        } else if (shouldSkipTranslation(key)) {
           collectTextFields(value, newPath);
         }
       }
