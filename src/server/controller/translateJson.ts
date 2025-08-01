@@ -66,7 +66,7 @@ export class TranslateJson {
 
     const headers = request.headers;
 
-    if (headers.get("Authorization") !== `Bearer ${process.env.API_KEY}`) {
+    if (headers.get("Authorization") !== `Bearer ${process.env.APP_API_KEY}`) {
       throw new ClientError(
         {
           errorMessage: "Invalid API key",
