@@ -10,6 +10,9 @@
   "author": "",
   "license": "ISC",
   "packageManager": "bun@1.2.1",
+  "engines": {
+    "node": "22.14.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/lodash": "^4.17.16",

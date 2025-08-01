@@ -21,12 +21,5 @@
     "moduleResolution": "node"
   },
   "include": ["src/**/*.ts", "modules/**/*.ts", "examples/**/*.ts"],
-  "exclude": [
-    ".vscode",
-    "node_modules",
-    "tmp",
-    "dist",
-    "package.json",
-    "pnpm-lock.yaml"
-  ]
+  "exclude": [".vscode", "node_modules", "tmp", "dist", "package.json"]
 }
