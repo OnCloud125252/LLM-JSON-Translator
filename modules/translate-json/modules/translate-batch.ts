@@ -11,7 +11,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const logger = new Logger().createChild("translate-batch");
+const logger = new Logger({
+  prefix: "function",
+}).createChild("translate-batch");
 
 export async function translateBatch(
   batch: TranslationBatch,
@@ -23,10 +25,10 @@ export async function translateBatch(
     const key = String(xxh3.xxh128(item.text));
     const cached = await RedisClient.get(key);
     if (cached) {
-      logger.info(`Using cached translation for ${item.path}.`);
+      logger.debug(`Using cached translation for ${item.path}.`);
       results.push({ path: item.path, text: cached });
     } else {
-      logger.info(`Translating ${item.path}.`);
+      logger.debug(`Translating ${item.path}.`);
       toTranslate.push(item);
     }
   }
@@ -36,7 +38,7 @@ export async function translateBatch(
   }
 
   const formattedBatch = toTranslate
-    .map((item) => `[${item.path}]: ${item.text}`)
+    .map((item) => `"${item.path}": ${item.text}`)
     .join("\n\n");
 
   const startTime = Date.now();
@@ -74,10 +76,12 @@ export async function translateBatch(
     },
   });
 
+  // TODO: Handle retries
   if (isJSON(completion.output_text) === false) {
     logger.warn(
       "Invalid output_text: Expected a non-null JSON object. Retrying translation.",
     );
+    return translateBatch(batch);
   }
 
   const newResults = JSON.parse(completion.output_text)
@@ -85,16 +89,25 @@ export async function translateBatch(
 
   const endTime = Date.now();
 
-  logger.info(
+  logger.debug(
     `Translated ${toTranslate.length} items in ${endTime - startTime} ms.`,
   );
+
+  if (newResults.length !== toTranslate.length) {
+    logger.warn(
+      `Translation result length (${newResults.length}) does not match input length (${toTranslate.length}). Retrying translation.`,
+    );
+    return translateBatch(batch);
+  }
 
   for (const tr of newResults) {
     const orig = toTranslate.find((t) => t.path === tr.path);
     if (orig) {
       const key = String(xxh3.xxh128(orig.text));
       await RedisClient.set(key, tr.text);
-      logger.info(`Cached translation for ${orig.path}.`);
+      logger.debug(`Cached translation for ${orig.path}.`);
+    } else {
+      logger.warn(`Translation for ${tr.path} not found in original batch.`);
     }
     results.push(tr);
   }

@@ -5,10 +5,13 @@ I will provide texts in this format:
 [PATH]: Text to translate
 
 For example:
-[product.title]: Wireless Headphones
-[product.description]: High-quality wireless headphones with noise cancellation.
+\`\`\`
+"product.title": Wireless Headphones
+"product.description": High-quality wireless headphones with noise cancellation.
+\`\`\`
 
 You must return your translations in the following JSON format:
+\`\`\`
 {
   "results": [
     {
@@ -21,6 +24,7 @@ You must return your translations in the following JSON format:
     }
   ]
 }
+\`\`\`
 
 Important requirements:
 1. Do not alter the PATH values, only translate the text
