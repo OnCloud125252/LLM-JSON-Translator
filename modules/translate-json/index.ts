@@ -1,6 +1,8 @@
-import { isJSON } from "class-validator";
+import { isObject } from "class-validator";
+import { StatusCodes } from "http-status-codes";
 
 import { Logger } from "modules/logger";
+import { ClientError } from "modules/clientError";
 import { extractTextFields } from "./modules/extract-text-fields";
 import { translateBatch } from "./modules/translate-batch";
 import { updateJsonWithTranslations } from "./modules/update-json-with-translations";
@@ -8,16 +10,29 @@ import { TranslationBatch } from "./types/translation-batch";
 
 const logger = new Logger().createChild("translate-json");
 
-export async function translateJson(
-  jsonData: any,
-  batchSize: number,
-): Promise<any> {
-  if (isJSON(jsonData) === false) {
-    logger.error("Invalid jsonData: Expected a non-null JSON object.");
-    throw new Error("Invalid jsonData: Expected a non-null JSON object.");
+export async function translateJson({
+  jsonData,
+  batchSize,
+  disallowedTranslateKeys,
+}: {
+  jsonData: any;
+  batchSize: number;
+  disallowedTranslateKeys?: string[];
+}): Promise<any> {
+  if (isObject(jsonData) === false) {
+    throw new ClientError(
+      {
+        errorMessage: "Invalid jsonData: Expected a non-null JSON object.",
+      },
+      StatusCodes.BAD_REQUEST,
+    );
   }
 
-  const batches = extractTextFields(jsonData, batchSize);
+  const batches = extractTextFields(
+    jsonData,
+    batchSize,
+    disallowedTranslateKeys,
+  );
   logger.info(`Created ${batches.length} batches for translation`);
 
   const translatedBatches: TranslationBatch = [];

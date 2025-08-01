@@ -5,6 +5,7 @@
   "main": "src/main.ts",
   "scripts": {
     "start": "bun run src/main.ts",
+    "start:dev": "bun run --watch src/main.ts",
     "type-check": "tsc --noEmit"
   },
   "keywords": [],
@@ -27,6 +28,7 @@
     "@node-rs/xxhash": "^1.7.6",
     "class-validator": "^0.14.1",
     "dotenv": "^16.5.0",
+    "http-status-codes": "^2.3.0",
     "lodash": "^4.17.21",
     "openai": "^4.95.1",
     "redis": "^4.7.0"

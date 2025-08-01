@@ -1,3 +1,7 @@
+import { isNotBlankString } from "modules/classValidator/customDecorator/IsNotBlankString";
+import { ClientError } from "modules/clientError";
+import { isClientError } from "modules/clientError/isClientError";
+
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -44,7 +48,7 @@ class Logger {
     parts.push(message);
 
     if (context && Object.keys(context).length > 0) {
-      parts.push(JSON.stringify(context));
+      parts.push(JSON.stringify(context, null, 2));
     }
 
     return parts.join(" ");
@@ -96,8 +100,17 @@ class Logger {
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     const errorContext = context || {};
 
-    if (error instanceof Error) {
+    if (isClientError(error)) {
+      const clientError = error as ClientError;
       errorContext.error = {
+        type: "CLIENT_ERROR",
+        code: clientError.code,
+        errorMessage: clientError.payload?.errorMessage,
+        errorObject: clientError.payload?.errorObject,
+      };
+    } else if (error instanceof Error) {
+      errorContext.error = {
+        type: "ERROR",
         name: error.name,
         message: error.message,
         stack: error.stack,
@@ -110,14 +123,20 @@ class Logger {
   }
 
   createChild(prefix: string): Logger {
-    const childPrefix = this.config.prefix
-      ? `${this.config.prefix}:${prefix}`
-      : prefix;
+    const cleanPrefix = prefix.trim();
 
-    return new Logger({
-      ...this.config,
-      prefix: childPrefix,
-    });
+    if (isNotBlankString(cleanPrefix)) {
+      const childPrefix = this.config.prefix
+        ? `${this.config.prefix}:${cleanPrefix}`
+        : cleanPrefix;
+
+      return new Logger({
+        ...this.config,
+        prefix: childPrefix,
+      });
+    }
+
+    throw new Error("Invalid logger prefix");
   }
 }
 
