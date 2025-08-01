@@ -1,3 +1,4 @@
+import { isNumber } from "class-validator";
 import { isNotBlankString } from "modules/classValidator/customDecorator/IsNotBlankString";
 import { ClientError } from "modules/clientError";
 import { isClientError } from "modules/clientError/isClientError";
@@ -12,7 +13,6 @@ export enum LogLevel {
 export type LogContext = Record<string, unknown>;
 
 export type LoggerConfig = {
-  level: LogLevel;
   prefix?: string;
   timestamp?: boolean;
 };
@@ -22,7 +22,6 @@ class Logger {
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
-      level: config.level ?? LogLevel.INFO,
       prefix: config.prefix ?? "",
       timestamp: config.timestamp ?? true,
     };
@@ -60,7 +59,11 @@ class Logger {
     message: string,
     context?: LogContext,
   ): void {
-    if (level < this.config.level) {
+    if (
+      process.env.APP_ENVIRONMENT !== "development" &&
+      isNumber(Number(process.env.LOG_LEVEL)) &&
+      level < Number(process.env.LOG_LEVEL)
+    ) {
       return;
     }
 
@@ -142,10 +145,7 @@ class Logger {
 
 // Create default logger instance
 const defaultLogger = new Logger({
-  level: process.env.LOG_LEVEL
-    ? (LogLevel[process.env.LOG_LEVEL as keyof typeof LogLevel] ??
-      LogLevel.INFO)
-    : LogLevel.INFO,
+  prefix: "default",
 });
 
 export default defaultLogger;
