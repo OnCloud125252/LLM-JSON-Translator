@@ -14,6 +14,12 @@ const webServerLogger = new Logger({
 }).createChild("startup");
 
 (async () => {
+  const packageJsonFile = Bun.file("./package.json");
+  const packageJson = await packageJsonFile.json();
+
+  webServerLogger.info(`Version: ${packageJson.version}`);
+  webServerLogger.info(`Environment: ${process.env.APP_ENVIRONMENT}`);
+
   await new RedisClient().init(process.env.REDIS_URL);
 
   const server = Bun.serve({
@@ -44,6 +50,6 @@ const webServerLogger = new Logger({
   });
 
   webServerLogger.info(
-    `Listening on http://${server.hostname}:${server.port} ...`,
+    `Listening on http://${server.hostname}:${server.port}`,
   );
 })();
