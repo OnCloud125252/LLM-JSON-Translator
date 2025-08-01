@@ -1,5 +1,9 @@
 import { createClient, RedisClientType } from "redis";
 
+import { Logger } from "modules/logger";
+
+const logger = new Logger().createChild("redis");
+
 export class RedisClient {
   private static redisClient: RedisClientType;
   private static isInitialized = false;
@@ -13,12 +17,14 @@ export class RedisClient {
         RedisClient.isInitialized = true;
       }
     } catch (_error) {
-      console.error("Error connecting to Redis.");
+      logger.error("Failed to connect to Redis");
+      throw new Error("Failed to connect to Redis");
     }
   }
 
   public static async get(key: string): Promise<string | null> {
     if (!RedisClient.isInitialized) {
+      logger.error("Redis client is not initialized");
       throw new Error("Redis client is not initialized");
     }
 
@@ -33,6 +39,7 @@ export class RedisClient {
     ttlInSeconds: number = 60 * 60,
   ): Promise<void> {
     if (!RedisClient.isInitialized) {
+      logger.error("Redis client is not initialized");
       throw new Error("Redis client is not initialized");
     }
 
