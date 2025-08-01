@@ -4,7 +4,9 @@ import { ClientError } from "modules/clientError";
 import { isClientError } from "modules/clientError/isClientError";
 import { Logger } from "modules/logger";
 
-const globalErrorHandlerLogger = new Logger().createChild(
+const globalErrorHandlerLogger = new Logger({
+  prefix: "web-server",
+}).createChild(
   "global-error-handler",
 );
 

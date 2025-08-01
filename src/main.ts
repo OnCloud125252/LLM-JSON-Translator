@@ -9,7 +9,9 @@ import { TranslateJson } from "./server/controller/translateJson";
 
 dotenvConfig();
 
-const webServerLogger = new Logger().createChild("web-server");
+const webServerLogger = new Logger({
+  prefix: "web-server",
+}).createChild("startup");
 
 (async () => {
   await new RedisClient().init(process.env.REDIS_URL);

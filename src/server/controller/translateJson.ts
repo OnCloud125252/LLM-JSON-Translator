@@ -1,4 +1,3 @@
-import { isObject } from "class-validator";
 import { StatusCodes } from "http-status-codes";
 
 import { ClientError } from "modules/clientError";
@@ -10,7 +9,9 @@ export class TranslateJson {
   static path = "/translate";
   static method = "POST";
 
-  logger = new Logger().createChild("CONTROLLER-translate");
+  logger = new Logger({
+    prefix: "controller",
+  }).createChild("translate");
 
   async handler(request: Request) {
     try {
@@ -18,7 +19,7 @@ export class TranslateJson {
 
       const { json, disallowedTranslateKeys } = body;
 
-      if (!isObject(json)) {
+      if (typeof json !== "object") {
         throw new ClientError(
           {
             errorMessage: "Body didn't meet requirements",
@@ -50,8 +51,6 @@ export class TranslateJson {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.log(error);
-
       if (
         error instanceof Error &&
         error.name === "SyntaxError" &&

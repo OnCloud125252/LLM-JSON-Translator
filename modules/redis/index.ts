@@ -2,7 +2,9 @@ import { createClient, RedisClientType } from "redis";
 
 import { Logger } from "modules/logger";
 
-const logger = new Logger().createChild("redis");
+const logger = new Logger({
+  prefix: "web-server",
+}).createChild("redis");
 
 export class RedisClient {
   private static redisClient: RedisClientType;
