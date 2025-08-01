@@ -32,6 +32,8 @@ const webServerResponseLogger = new Logger({
   const server = Bun.serve({
     hostname: process.env.HOST || "127.0.0.1",
     port: process.env.PORT || 3000,
+    development: process.env.APP_ENVIRONMENT === "development",
+    maxRequestBodySize: 100 * 1024 * 1024,
     async fetch(request, server) {
       const url = new URL(request.url);
 
