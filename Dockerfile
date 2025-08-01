@@ -1,31 +1,38 @@
-# Use the official Bun image.
-FROM oven/bun:1 AS base
+# 1. Install all dependencies and copy source code
+FROM oven/bun:1 AS all-deps
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+COPY . .
 
-# Set the working directory.
+# 2. Run type-check. This is a separate stage to ensure the code is valid before proceeding.
+FROM all-deps AS checker
+RUN bun run type-check
+
+# 3. Install only production dependencies for the final image
+FROM oven/bun:1 AS prod-deps
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile
+
+# 4. The final, lean production image
+FROM oven/bun:1
 WORKDIR /app
 
-# A multi-stage build to handle dependencies and the final image.
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lock /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
-
-FROM base AS build
-COPY . .
-COPY --from=install /temp/dev/node_modules node_modules
-RUN bun run build
-
-FROM base
-COPY --from=build /app/dist .
-COPY package.json .
-COPY bun.lock .
-
-# Set environment variables.
+# Set environment variables
 ENV NODE_ENV=production
 ENV APP_ENVIRONMENT=production
 
-# Expose the application port.
+# Copy production dependencies and source code
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=checker /app/src ./src
+COPY --from=checker /app/package.json \
+     --from=checker /app/bun.lock \
+     --from=checker /app/tsconfig.json \
+     ./
+
+# Expose the application port
 EXPOSE 3000
 
-# Define the command to run the application.
+# Define the command to run the application
 CMD [ "bun", "run", "src/main.ts" ]
