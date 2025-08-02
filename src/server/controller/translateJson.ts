@@ -143,9 +143,8 @@ export class TranslateJson {
       });
       const time1 = Date.now();
 
-      this.logger.debug(`Translated JSON in ${time1 - time0}ms`);
       this.webServerResponseLogger.info(
-        `Translated JSON in ${time1 - time0}ms`,
+        `Translated ${Object.keys(translatedJson).length} fields in ${time1 - time0}ms`,
       );
 
       return new Response(JSON.stringify(translatedJson), {

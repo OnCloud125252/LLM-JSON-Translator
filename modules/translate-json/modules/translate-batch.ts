@@ -1,12 +1,14 @@
 import { xxh3 } from "@node-rs/xxhash";
 import OpenAI from "openai";
 import { isJSON } from "class-validator";
+import { StatusCodes } from "http-status-codes";
 
 import { Logger } from "modules/logger";
 import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
 import { RedisClient } from "modules/redis";
-import { TranslationBatch } from "../types/translation-batch";
 import { SYSTEM_PROMPT_EN_US } from "modules/system-prompts/en-US";
+import { ClientError } from "modules/clientError";
+import { TranslationBatch } from "../types/translation-batch";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,9 +28,12 @@ const systemPrompts: Record<TargetLanguage, string> = {
   [TargetLanguage.ZH_TW]: SYSTEM_PROMPT_ZH_TW,
 };
 
+const MAX_RETRIES = 5;
+
 export async function translateBatch(
   batch: TranslationBatch,
   targetLanguage: TargetLanguage,
+  retries = 0,
 ): Promise<TranslationBatch> {
   const results: TranslationBatch = [];
   const toTranslate: TranslationBatch = [];
@@ -49,9 +54,9 @@ export async function translateBatch(
     return results;
   }
 
-  const formattedBatch = toTranslate
-    .map((item) => `"${item.path}": ${item.text}`)
-    .join("\n\n");
+  const formattedBatch = JSON.stringify({
+    needToTranslate: toTranslate,
+  });
 
   const startTime = Date.now();
   const completion = await openai.responses.create({
@@ -92,7 +97,12 @@ export async function translateBatch(
     logger.warn(
       "Invalid output_text: Expected a non-null JSON object. Retrying translation.",
     );
-    return translateBatch(batch, targetLanguage);
+    if (retries >= MAX_RETRIES) {
+      throw new Error(
+        `Translation failed after ${MAX_RETRIES} retries: Invalid JSON output.`,
+      );
+    }
+    return translateBatch(batch, targetLanguage, retries + 1);
   }
 
   const newResults = JSON.parse(completion.output_text)
@@ -108,7 +118,22 @@ export async function translateBatch(
     logger.warn(
       `Translation result length (${newResults.length}) does not match input length (${toTranslate.length}). Retrying translation.`,
     );
-    return translateBatch(batch, targetLanguage);
+    logger.debug(JSON.stringify(toTranslate, null, 2));
+    logger.debug(JSON.stringify(newResults, null, 2));
+
+    if (retries >= MAX_RETRIES) {
+      throw new ClientError(
+        {
+          errorMessage: `Translation failed after ${MAX_RETRIES} retries: Mismatched translation result length.`,
+          errorObject: {
+            toTranslateLength: toTranslate.length,
+            newResultsLength: newResults.length,
+          },
+        },
+        StatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return translateBatch(batch, targetLanguage, retries + 1);
   }
 
   for (const tr of newResults) {
