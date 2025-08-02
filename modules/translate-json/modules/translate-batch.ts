@@ -35,6 +35,22 @@ export async function translateBatch(
   targetLanguage: TargetLanguage,
   retries = 0,
 ): Promise<TranslationBatch> {
+  const stats = {
+    totalItems: batch.length,
+    fromCache: 0,
+    toTranslate: 0,
+    translated: 0,
+    retries,
+    warnings: 0,
+    errors: 0,
+  };
+
+  logger.debug(
+    `[Attempt ${retries + 1}/${
+      MAX_RETRIES + 1
+    }] Starting translation for ${stats.totalItems} items.`,
+  );
+
   const results: TranslationBatch = [];
   const toTranslate: TranslationBatch = [];
 
@@ -44,13 +60,20 @@ export async function translateBatch(
     if (cached) {
       logger.debug(`Using cached translation for ${item.path}.`);
       results.push({ path: item.path, text: cached });
+      stats.fromCache++;
     } else {
       logger.debug(`Translating ${item.path}.`);
       toTranslate.push(item);
     }
   }
 
+  stats.toTranslate = toTranslate.length;
+
   if (toTranslate.length === 0) {
+    logger.debug("All items were found in cache. No translation needed.");
+    logger.debug(
+      `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
+    );
     return results;
   }
 
@@ -94,13 +117,18 @@ export async function translateBatch(
   });
 
   if (isJSON(completion.output_text) === false) {
+    stats.warnings++;
     logger.warn(
       "Invalid output_text: Expected a non-null JSON object. Retrying translation.",
     );
     if (retries >= MAX_RETRIES) {
-      throw new Error(
-        `Translation failed after ${MAX_RETRIES} retries: Invalid JSON output.`,
+      stats.errors++;
+      const errorMessage = `Translation failed after ${MAX_RETRIES} retries: Invalid JSON output.`;
+      logger.error(errorMessage);
+      logger.debug(
+        `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
       );
+      throw new Error(errorMessage);
     }
     return translateBatch(batch, targetLanguage, retries + 1);
   }
@@ -108,13 +136,16 @@ export async function translateBatch(
   const newResults = JSON.parse(completion.output_text)
     .results as TranslationBatch;
 
+  stats.translated = newResults.length;
+
   const endTime = Date.now();
 
   logger.debug(
-    `Translated ${toTranslate.length} items in ${endTime - startTime} ms.`,
+    `Translated ${stats.translated} items in ${endTime - startTime} ms.`,
   );
 
   if (newResults.length !== toTranslate.length) {
+    stats.warnings++;
     logger.warn(
       `Translation result length (${newResults.length}) does not match input length (${toTranslate.length}). Retrying translation.`,
     );
@@ -122,9 +153,15 @@ export async function translateBatch(
     logger.debug(JSON.stringify(newResults, null, 2));
 
     if (retries >= MAX_RETRIES) {
+      stats.errors++;
+      const errorMessage = `Translation failed after ${MAX_RETRIES} retries: Mismatched translation result length.`;
+      logger.error(errorMessage);
+      logger.debug(
+        `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
+      );
       throw new ClientError(
         {
-          errorMessage: `Translation failed after ${MAX_RETRIES} retries: Mismatched translation result length.`,
+          errorMessage,
           errorObject: {
             toTranslateLength: toTranslate.length,
             newResultsLength: newResults.length,
@@ -143,10 +180,15 @@ export async function translateBatch(
       await RedisClient.set(key, tr.text);
       logger.debug(`Cached translation for ${orig.path}.`);
     } else {
+      stats.warnings++;
       logger.warn(`Translation for ${tr.path} not found in original batch.`);
     }
     results.push(tr);
   }
+
+  logger.debug(
+    `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
+  );
 
   return results;
 }
