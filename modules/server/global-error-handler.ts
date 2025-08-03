@@ -27,14 +27,13 @@ export function globalErrorHandler(error: any | ClientError | Error) {
         .error("Client error:", error);
     }
 
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         errorMessage: clientError.payload?.errorMessage,
         errorObject: clientError.payload?.errorObject,
-      }),
+      },
       {
         status: clientError.code,
-        headers: { "Content-Type": "application/json" },
       },
     );
   }
@@ -42,13 +41,12 @@ export function globalErrorHandler(error: any | ClientError | Error) {
   globalErrorHandlerLogger
     .createChild("unknown-error")
     .error("Unexpected error:", error);
-  return new Response(
-    JSON.stringify({
+  return Response.json(
+    {
       errorMessage: "Unexpected error occurred. Please try again.",
-    }),
+    },
     {
       status: StatusCodes.INTERNAL_SERVER_ERROR,
-      headers: { "Content-Type": "application/json" },
     },
   );
 }

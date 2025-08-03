@@ -84,7 +84,7 @@ export class TranslateJson {
     });
   }
 
-  async handler() {
+  async POST() {
     const request = this.request;
     this.haveRequest();
 
@@ -147,9 +147,8 @@ export class TranslateJson {
         `Translated ${Object.keys(translatedJson).length} fields in ${time1 - time0}ms`,
       );
 
-      return new Response(JSON.stringify(translatedJson), {
+      return Response.json(translatedJson, {
         status: StatusCodes.OK,
-        headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
       if (

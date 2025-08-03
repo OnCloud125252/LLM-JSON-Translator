@@ -20,6 +20,19 @@ const webServerResponseLogger = new Logger({
   prefix: "web-server",
 }).createChild("response");
 
+async function requestLogger(request: Request, server: any) {
+  const url = new URL(request.url);
+
+  const requestUuid = uuidv4();
+  webServerRequestLogger
+    .createChild(requestUuid)
+    .info(
+      `${server.requestIP(request).address}:${server.requestIP(request).port} | ${request.method} ${url.pathname} | Content length: ${(await request.clone().bytes()).byteLength}`,
+    );
+
+  return { requestUuid };
+}
+
 (async () => {
   const packageJsonFile = Bun.file("./package.json");
   const packageJson = await packageJsonFile.json();
@@ -34,34 +47,26 @@ const webServerResponseLogger = new Logger({
     port: process.env.PORT || 3000,
     development: process.env.APP_ENVIRONMENT === "development",
     maxRequestBodySize: 1000 * 1024 * 1024,
-    async fetch(request, server) {
+    routes: {
+      [TranslateJson.path]: {
+        POST: async (request, server) => {
+          const { requestUuid } = await requestLogger(request, server);
+
+          return await new TranslateJson({
+            request,
+            webServerResponseLogger:
+              webServerResponseLogger.createChild(requestUuid),
+            requestUuid,
+          })
+            .middleware()
+            .guard()
+            .POST();
+        },
+      },
+    },
+    async fetch(request) {
       const url = new URL(request.url);
-
       const requestUuid = uuidv4();
-      webServerRequestLogger
-        .createChild(requestUuid)
-        .info(
-          `${server.requestIP(request).address}:${server.requestIP(request).port} | ${request.method} ${url.pathname} | Content length: ${(await request.clone().bytes()).byteLength}`,
-        );
-
-      switch (url.pathname) {
-        case TranslateJson.path: {
-          switch (request.method) {
-            case TranslateJson.method: {
-              return await new TranslateJson({
-                request,
-                webServerResponseLogger:
-                  webServerResponseLogger.createChild(requestUuid),
-                requestUuid,
-              })
-                .middleware()
-                .guard()
-                .handler();
-            }
-          }
-          break;
-        }
-      }
 
       throw new ClientError(
         {
