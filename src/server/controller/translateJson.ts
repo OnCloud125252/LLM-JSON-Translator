@@ -37,12 +37,14 @@ function validateAuthorization(request: Request): void {
   }
 }
 
-function validateRequestBody(body: any): {
+interface RequestBody {
   json: object;
   targetLanguage: TargetLanguage;
   disallowedTranslateKeys?: string[];
-} {
-  const { json, targetLanguage, disallowedTranslateKeys } = body;
+}
+
+function validateRequestBody(body: unknown): RequestBody {
+  const { json, targetLanguage, disallowedTranslateKeys } = body as RequestBody;
 
   if (typeof json !== "object" || json === null) {
     controllerLogger.warn("Invalid json field type", { type: typeof json });

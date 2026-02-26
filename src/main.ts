@@ -1,12 +1,11 @@
 import { config as dotenvConfig } from "dotenv";
 import { StatusCodes } from "http-status-codes";
-import OpenAI from "openai";
-import { v4 as uuidv4 } from "uuid";
-
 import { ClientError } from "modules/clientError";
 import { Logger } from "modules/logger";
 import { redisClient } from "modules/redis";
 import { globalErrorHandler } from "modules/server/global-error-handler";
+import OpenAI from "openai";
+import { v4 as uuidv4 } from "uuid";
 import { handleTranslateJsonRequest } from "./server/controller/translateJson";
 
 dotenvConfig();
@@ -42,7 +41,10 @@ async function verifyOpenAIConnection(): Promise<void> {
   }
 }
 
-async function logRequest(request: Request, server: any): Promise<string> {
+async function logRequest(
+  request: Request,
+  server: ReturnType<typeof Bun.serve>,
+): Promise<string> {
   const requestUuid = uuidv4();
   const url = new URL(request.url);
   const clientIp = server.requestIP(request);
