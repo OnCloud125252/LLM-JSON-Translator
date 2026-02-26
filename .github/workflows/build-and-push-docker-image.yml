@@ -35,12 +35,18 @@ jobs:
       - name: Generate GitHub summary
         if: always()
         run: |
-          if [[ "${{ steps.check_commit_message.outputs.commit_message }}" != "" ]]; then
-            echo "## :white_check_mark: Versioned push" >> $GITHUB_STEP_SUMMARY
-            echo "Initiating Docker image build and push for version \`${{ steps.check_commit_message.outputs.commit_message }}\`." >> $GITHUB_STEP_SUMMARY
+          COMMIT_MSG="${{ steps.check_commit_message.outputs.commit_message }}"
+          if [[ "$COMMIT_MSG" != "" ]]; then
+            echo "### :white_check_mark: Versioned Push Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Version | \`$COMMIT_MSG\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Status | Initiating build and push |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "## :x: This push does not qualify as a version push" >> $GITHUB_STEP_SUMMARY
-            echo "Skipping the build and push process." >> $GITHUB_STEP_SUMMARY
+            echo "### :x: Non-Version Push" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This push does not qualify as a version push. Build and push process skipped." >> $GITHUB_STEP_SUMMARY
           fi
 
   build-and-push:
@@ -109,12 +115,16 @@ jobs:
           CURRENT_TIME=$(date +%s)
           ELAPSED=$(( CURRENT_TIME - ${START_TIME} ))
           echo "ELAPSED=$ELAPSED" >> $GITHUB_ENV
-          echo "## Docker Image Summary" >> $GITHUB_STEP_SUMMARY
-          echo "The following tags were pushed:" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "### :package: Docker Image Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Size:** ${{ env.IMAGE_SIZE }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Latest | \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Docker image built and pushed successfully in ${ELAPSED}s." >> $GITHUB_STEP_SUMMARY
-
+          echo "### :gear: Build Details" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build time | ${ELAPSED} seconds |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image size | ${IMAGE_SIZE} |" >> $GITHUB_STEP_SUMMARY
