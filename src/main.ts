@@ -1,5 +1,6 @@
 import { config as dotenvConfig } from "dotenv";
 import { StatusCodes } from "http-status-codes";
+import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 
 import { ClientError } from "modules/clientError";
@@ -12,6 +13,24 @@ dotenvConfig();
 
 const logger = new Logger({ prefix: "web-server" });
 const DEFAULT_BATCH_SIZE = 10;
+
+async function verifyOpenAIConnection(): Promise<void> {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
+  try {
+    const models = await openai.models.list();
+    logger
+      .createChild("startup")
+      .info(`OpenAI API key verified - ${models.data.length} models available`);
+  } catch (error) {
+    logger
+      .createChild("startup")
+      .error("OpenAI API key verification failed", error);
+    throw new Error("Failed to verify OpenAI API key");
+  }
+}
 
 async function logRequest(request: Request, server: any): Promise<string> {
   const requestUuid = uuidv4();
@@ -38,6 +57,7 @@ async function logRequest(request: Request, server: any): Promise<string> {
     .info(`Environment: ${process.env.APP_ENVIRONMENT}`);
 
   await redisClient.init(process.env.REDIS_URL);
+  await verifyOpenAIConnection();
 
   const server = Bun.serve({
     hostname: process.env.HOST || "127.0.0.1",
