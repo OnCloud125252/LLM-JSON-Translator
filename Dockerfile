@@ -19,6 +19,9 @@ RUN bun install --production --frozen-lockfile
 FROM oven/bun:1
 WORKDIR /app
 
+# Install curl for healthcheck
+RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV APP_ENVIRONMENT=production
@@ -32,7 +35,7 @@ EXPOSE 3000
 
 # Health check for container orchestrators
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD curl -f http://localhost:3000/health || exit 1
 
 # Define the command to run the application
 CMD [ "bun", "run", "src/main.ts" ]
