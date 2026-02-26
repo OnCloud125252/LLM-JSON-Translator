@@ -1,4 +1,4 @@
-export function isClientError(error: any): boolean {
+export function isClientError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) {
     return false;
   }

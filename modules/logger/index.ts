@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noConsole: Logger needs console output */
 import chalk from "chalk";
 import { ClientError } from "modules/clientError";
 import { isClientError } from "modules/clientError/isClientError";
@@ -103,7 +104,6 @@ class Logger {
         console.debug(formattedMessage);
         break;
       default:
-        // biome-ignore lint/suspicious/noConsoleLog:
         console.log(formattedMessage);
     }
   }

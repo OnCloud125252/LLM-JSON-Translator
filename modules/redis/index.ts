@@ -1,6 +1,5 @@
-import { RedisClientType, createClient } from "redis";
-
 import { Logger } from "modules/logger";
+import { createClient, RedisClientType } from "redis";
 
 const logger = new Logger({
   prefix: "web-server",

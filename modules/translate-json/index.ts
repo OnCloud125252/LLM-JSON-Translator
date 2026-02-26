@@ -2,7 +2,7 @@ import { Logger } from "modules/logger";
 import { extractTextFields } from "./modules/extract-text-fields";
 import { TargetLanguage, translateBatch } from "./modules/translate-batch";
 import { updateJsonWithTranslations } from "./modules/update-json-with-translations";
-import type { TranslationItem, TranslationBatch } from "./schema";
+import type { TranslationBatch, TranslationItem } from "./schema";
 
 const logger = new Logger({
   prefix: "function",

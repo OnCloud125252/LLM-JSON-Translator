@@ -1,6 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { TargetLanguage } from "../translate-json/modules/translate-batch";
-import { getAllPaths, haveSamePaths, haveSameTypes } from "./json-compare";
+import { haveSamePaths, haveSameTypes } from "./json-compare";
 
 /**
  * Manual API Behavior Test
@@ -106,7 +106,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
   describe("Path Preservation", () => {
     it("should preserve root property paths", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Hello World", message: "Good Day" };
 
@@ -121,7 +123,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve nested object paths", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         user: {
@@ -143,7 +147,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve array element paths", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         items: ["first item", "second item", "third item"],
@@ -161,7 +167,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve deep nesting paths", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         data: [{ name: "First Item" }, { name: "Second Item" }],
@@ -178,7 +186,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve deeply nested structure (5+ levels)", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         l1: {
@@ -206,7 +216,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve complex mixed structures", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         users: [
@@ -234,7 +246,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
   describe("Type Preservation", () => {
     it("should preserve string types", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Hello World", description: "Good Day" };
 
@@ -250,7 +264,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve number types (including zero)", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test", count: 42, rate: 3.14, zero: 0 };
 
@@ -267,7 +283,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve boolean types", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test", active: true, disabled: false };
 
@@ -285,7 +303,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve null values", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test", data: null, empty: null };
 
@@ -301,7 +321,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve array structure and length", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         items: [1, 2, 3, 4, 5],
@@ -318,9 +340,9 @@ describe("Translation API Behavior - Manual Test", () => {
       expect(data).toBeDefined();
       expect(haveSameTypes(input, data)).toBe(true);
       expect(Array.isArray((data as { items: unknown }).items)).toBe(true);
-      expect(((data as { items: unknown[] }).items).length).toBe(5);
-      expect(((data as { strings: unknown[] }).strings).length).toBe(3);
-      expect(((data as { mixed: unknown[] }).mixed).length).toBe(4);
+      expect((data as { items: unknown[] }).items.length).toBe(5);
+      expect((data as { strings: unknown[] }).strings.length).toBe(3);
+      expect((data as { mixed: unknown[] }).mixed.length).toBe(4);
     });
   });
 
@@ -351,7 +373,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
     for (const pattern of nonTranslatablePatterns) {
       it(`should NOT translate ${pattern.name}: ${pattern.value}`, async () => {
-        if (skipIfUnavailable()) return;
+        if (skipIfUnavailable()) {
+          return;
+        }
 
         const input = {
           text: "Hello World",
@@ -378,7 +402,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
   describe("Field Exclusion", () => {
     it("should not translate disallowed keys at root level", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         name: "Hello World",
@@ -400,11 +426,15 @@ describe("Translation API Behavior - Manual Test", () => {
 
       // name and description should be translated
       expect((data as { name: string }).name).not.toBe("Hello World");
-      expect((data as { description: string }).description).not.toBe("Good Day");
+      expect((data as { description: string }).description).not.toBe(
+        "Good Day",
+      );
     });
 
     it("should not translate disallowed keys at any nesting depth", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         id: "root-id",
@@ -430,11 +460,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
       // All id fields should remain untranslated
       expect((data as { id: unknown }).id).toBe("root-id");
+      expect((data as { nested: { id: unknown } }).nested.id).toBe("nested-id");
       expect(
-        ((data as { nested: { id: unknown } }).nested).id,
-      ).toBe("nested-id");
-      expect(
-        ((data as { nested: { deep: { id: unknown } } }).nested).deep.id,
+        (data as { nested: { deep: { id: unknown } } }).nested.deep.id,
       ).toBe("deep-id");
 
       // Other fields should be translated
@@ -442,7 +470,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should support multiple disallowed keys", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         id: "user-123",
@@ -472,7 +502,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve technical fields when disallowed", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         uuid: "550e8400-e29b-41d4-a716-446655440000",
@@ -506,7 +538,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve metadata fields when disallowed", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         id: "123",
@@ -540,7 +574,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
   describe("Special Conditions and Edge Cases", () => {
     it("should pass through empty strings unchanged", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Hello World", empty: "" };
 
@@ -560,7 +596,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should pass through whitespace-only strings unchanged", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Hello World", whitespace: "   " };
 
@@ -577,7 +615,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should pass through escape sequence strings unchanged", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Hello World", escapes: "\n\t" };
 
@@ -594,16 +634,12 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should handle mixed arrays with various types", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
-        items: [
-          "Text to translate",
-          123,
-          null,
-          { nested: "More text" },
-          true,
-        ],
+        items: ["Text to translate", 123, null, { nested: "More text" }, true],
       };
 
       const { response, data } = await makeTranslationRequest({
@@ -618,7 +654,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should preserve escape sequences in translatable text", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         lineBreaks: "Line 1\nLine 2",
@@ -649,7 +687,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should handle empty objects", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {};
 
@@ -663,7 +703,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should handle unicode characters", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         chinese: "你好世界",
@@ -683,7 +725,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should handle empty arrays", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = {
         items: [],
@@ -703,7 +747,9 @@ describe("Translation API Behavior - Manual Test", () => {
 
   describe("Error Handling", () => {
     it("should return 400 for invalid Content-Type", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test" };
 
@@ -716,7 +762,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should return 400 for invalid JSON body", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const response = await fetch(`${API_BASE_URL}/translate`, {
         method: "POST",
@@ -731,7 +779,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should return 400 for invalid json field type", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const { response } = await makeTranslationRequest({
         json: "not an object" as unknown as object,
@@ -742,7 +792,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should return 400 for invalid targetLanguage", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test" };
 
@@ -755,7 +807,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should return 401 for missing Authorization", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test" };
 
@@ -774,7 +828,9 @@ describe("Translation API Behavior - Manual Test", () => {
     });
 
     it("should return 401 for invalid Authorization", async () => {
-      if (skipIfUnavailable()) return;
+      if (skipIfUnavailable()) {
+        return;
+      }
 
       const input = { name: "Test" };
 

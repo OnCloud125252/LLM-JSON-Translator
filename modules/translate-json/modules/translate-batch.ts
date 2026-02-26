@@ -1,12 +1,11 @@
 import { xxh3 } from "@node-rs/xxhash";
 import { StatusCodes } from "http-status-codes";
-import OpenAI from "openai";
-
 import { ClientError } from "modules/clientError";
 import { Logger } from "modules/logger";
 import { redisClient } from "modules/redis";
 import { SYSTEM_PROMPT_EN_US } from "modules/system-prompts/en-US";
 import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
+import OpenAI from "openai";
 import {
   createTranslationSchemas,
   TranslationBatch,

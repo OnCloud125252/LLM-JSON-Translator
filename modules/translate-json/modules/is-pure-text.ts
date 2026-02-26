@@ -114,7 +114,7 @@ export function isPureText(value: string): boolean {
       "zh-TW",
     ];
 
-    return locales.some((locale) => isMobilePhone(value, locale as any));
+    return locales.some((locale) => isMobilePhone(value, locale as string));
   };
 
   return (
