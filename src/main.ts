@@ -6,6 +6,8 @@ import { redisClient } from "modules/redis";
 import { globalErrorHandler } from "modules/server/global-error-handler";
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
+import { handleHealthRequest } from "./server/controller/health";
+import { handleRootRequest } from "./server/controller/root";
 import { handleTranslateJsonRequest } from "./server/controller/translateJson";
 
 dotenvConfig();
@@ -78,6 +80,12 @@ async function logRequest(
     development: process.env.APP_ENVIRONMENT === "development",
     maxRequestBodySize: 1000 * 1024 * 1024,
     routes: {
+      "/": {
+        GET: handleRootRequest,
+      },
+      "/health": {
+        GET: handleHealthRequest,
+      },
       "/translate": {
         POST: async (request, server) => {
           const requestUuid = await logRequest(request, server);
