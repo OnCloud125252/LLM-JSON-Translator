@@ -51,3 +51,8 @@ bun run lint:md
 
 - **Always use path aliases** instead of relative paths (e.g., `@core/json-compare` instead of `../core/json-compare`)
 - This keeps imports clean and prevents breakages when files are reorganized
+
+## Documentation Guidelines
+
+- **Documentation is part of the feature**: New environment variables must be documented in `.env.example` so users know they exist and how to use them
+- Update relevant docs in the `docs/` folder when adding new features or changing behavior
