@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { extractTextFields } from "../translate-json/modules/extract-text-fields";
+import { extractTextFields } from "@core/translate-json/modules/extract-text-fields";
 
 describe("extractTextFields", () => {
   describe("simple objects", () => {

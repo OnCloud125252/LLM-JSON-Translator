@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { TargetLanguage } from "../translate-json/modules/translate-batch";
-import { haveSamePaths, haveSameTypes } from "./json-compare";
+import { haveSamePaths, haveSameTypes } from "@core/json-compare";
+import { TargetLanguage } from "@core/translate-json/modules/translate-batch";
 
 /**
  * Manual API Behavior Test
@@ -13,7 +13,7 @@ import { haveSamePaths, haveSameTypes } from "./json-compare";
  * - API_BASE_URL: Server URL (optional, defaults to http://127.0.0.1:3005)
  *
  * Run the test:
- *   RUN_MANUAL_TESTS=1 bun test modules/__tests__/api-behavior.manual.test.ts
+ *   RUN_MANUAL_TESTS=1 bun test src/tests/api-behavior.manual.test.ts
  */
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:3005";

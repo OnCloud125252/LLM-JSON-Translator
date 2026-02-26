@@ -1,4 +1,4 @@
-import { Logger } from "modules/logger";
+import { Logger } from "@core/logger";
 import { createClient, RedisClientType } from "redis";
 
 const logger = new Logger({

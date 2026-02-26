@@ -1,8 +1,7 @@
+import { ClientError } from "@core/clientError";
+import { isClientError } from "@core/clientError/isClientError";
+import { Logger } from "@core/logger";
 import { StatusCodes } from "http-status-codes";
-
-import { ClientError } from "modules/clientError";
-import { isClientError } from "modules/clientError/isClientError";
-import { Logger } from "modules/logger";
 
 const logger = new Logger({
   prefix: "web-server",

@@ -1,10 +1,9 @@
+import { ClientError } from "@core/clientError";
+import { isClientError } from "@core/clientError/isClientError";
+import { Logger } from "@core/logger";
+import { translateJson } from "@core/translate-json";
+import { TargetLanguage } from "@core/translate-json/modules/translate-batch";
 import { StatusCodes } from "http-status-codes";
-
-import { ClientError } from "modules/clientError";
-import { isClientError } from "modules/clientError/isClientError";
-import { Logger } from "modules/logger";
-import { translateJson } from "modules/translate-json";
-import { TargetLanguage } from "modules/translate-json/modules/translate-batch";
 
 const controllerLogger = new Logger({ prefix: "controller:translate" });
 

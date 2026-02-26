@@ -1,5 +1,5 @@
+import { TranslationBatch } from "@core/translate-json";
 import set from "lodash/set";
-import { TranslationBatch } from "../index";
 
 export function updateJsonWithTranslations(
   obj: unknown,

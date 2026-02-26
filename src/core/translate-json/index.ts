@@ -1,4 +1,4 @@
-import { Logger } from "modules/logger";
+import { Logger } from "@core/logger";
 import { extractTextFields } from "./modules/extract-text-fields";
 import { TargetLanguage, translateBatch } from "./modules/translate-batch";
 import { updateJsonWithTranslations } from "./modules/update-json-with-translations";

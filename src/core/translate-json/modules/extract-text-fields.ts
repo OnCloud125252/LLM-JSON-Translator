@@ -1,5 +1,5 @@
+import { TranslationBatch } from "@core/translate-json";
 import chunk from "lodash/chunk";
-import { TranslationBatch } from "../index";
 import { isPureText } from "./is-pure-text";
 import { shouldSkipTranslation } from "./should-skip-translation";
 

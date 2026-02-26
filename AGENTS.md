@@ -46,3 +46,8 @@ bun run lint:md
 | Code Style | [docs/agents/code-style.md](docs/agents/code-style.md) |
 | Agent Workflow | [docs/agents/workflow.md](docs/agents/workflow.md) |
 | Security Guidelines | [docs/agents/security.md](docs/agents/security.md) |
+
+## Import Conventions
+
+- **Always use path aliases** instead of relative paths (e.g., `@core/json-compare` instead of `../core/json-compare`)
+- This keeps imports clean and prevents breakages when files are reorganized

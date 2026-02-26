@@ -1,7 +1,7 @@
-import { SAMPLE_DATA_A } from "examples/sample-data/data/a.js";
-import { redisClient } from "modules/redis";
-import { translateJson } from "modules/translate-json";
-import { TargetLanguage } from "modules/translate-json/modules/translate-batch";
+import { redisClient } from "@core/redis";
+import { translateJson } from "@core/translate-json";
+import { TargetLanguage } from "@core/translate-json/modules/translate-batch";
+import { SAMPLE_DATA_A } from "@examples/sample-data/data/a.js";
 
 async function runExample(): Promise<void> {
   await redisClient.init(process.env.REDIS_URL);

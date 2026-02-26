@@ -18,7 +18,13 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@core/*": ["src/core/*"],
+      "@tests/*": ["src/tests/*"],
+      "@examples/*": ["examples/*"]
+    }
   },
   "include": ["src/**/*.ts", "modules/**/*.ts", "examples/**/*.ts"],
   "exclude": [".vscode", "node_modules", "tmp", "dist", "package.json"]

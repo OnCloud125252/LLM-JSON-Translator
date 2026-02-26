@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { TranslationBatch } from "../translate-json";
-import { updateJsonWithTranslations } from "../translate-json/modules/update-json-with-translations";
+import type { TranslationBatch } from "@core/translate-json";
+import { updateJsonWithTranslations } from "@core/translate-json/modules/update-json-with-translations";
 
 describe("updateJsonWithTranslations", () => {
   describe("simple field updates", () => {

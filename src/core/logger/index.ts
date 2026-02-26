@@ -1,7 +1,8 @@
 /** biome-ignore-all lint/suspicious/noConsole: Logger needs console output */
+
+import { ClientError } from "@core/clientError";
+import { isClientError } from "@core/clientError/isClientError";
 import chalk from "chalk";
-import { ClientError } from "modules/clientError";
-import { isClientError } from "modules/clientError/isClientError";
 
 export enum LogLevel {
   DEBUG = 0,

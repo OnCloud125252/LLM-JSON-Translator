@@ -1,16 +1,16 @@
-import { xxh3 } from "@node-rs/xxhash";
-import { StatusCodes } from "http-status-codes";
-import { ClientError } from "modules/clientError";
-import { Logger } from "modules/logger";
-import { redisClient } from "modules/redis";
-import { SYSTEM_PROMPT_EN_US } from "modules/system-prompts/en-US";
-import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
-import OpenAI from "openai";
+import { ClientError } from "@core/clientError";
+import { Logger } from "@core/logger";
+import { redisClient } from "@core/redis";
+import { SYSTEM_PROMPT_EN_US } from "@core/system-prompts/en-US";
+import { SYSTEM_PROMPT_ZH_TW } from "@core/system-prompts/zh-TW";
 import {
   createTranslationSchemas,
   TranslationBatch,
   TranslationResultSchema,
-} from "../schema";
+} from "@core/translate-json/schema";
+import { xxh3 } from "@node-rs/xxhash";
+import { StatusCodes } from "http-status-codes";
+import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

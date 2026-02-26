@@ -1,9 +1,9 @@
+import { ClientError } from "@core/clientError";
+import { globalErrorHandler } from "@core/error-handler/global-error-handler";
+import { Logger } from "@core/logger";
+import { redisClient } from "@core/redis";
 import { config as dotenvConfig } from "dotenv";
 import { StatusCodes } from "http-status-codes";
-import { ClientError } from "modules/clientError";
-import { Logger } from "modules/logger";
-import { redisClient } from "modules/redis";
-import { globalErrorHandler } from "modules/server/global-error-handler";
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 import { handleHealthRequest } from "./server/controller/health";

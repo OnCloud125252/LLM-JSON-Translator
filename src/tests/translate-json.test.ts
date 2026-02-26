@@ -3,10 +3,10 @@ import type {
   TargetLanguage,
   TranslationBatch,
   TranslationItem,
-} from "../translate-json";
-import { extractTextFields } from "../translate-json/modules/extract-text-fields";
-import { updateJsonWithTranslations } from "../translate-json/modules/update-json-with-translations";
-import { haveSamePaths, haveSameTypes } from "./json-compare";
+} from "@core/translate-json";
+import { extractTextFields } from "@core/translate-json/modules/extract-text-fields";
+import { updateJsonWithTranslations } from "@core/translate-json/modules/update-json-with-translations";
+import { haveSamePaths, haveSameTypes } from "@core/json-compare";
 
 describe("translateJson - Integration Tests", () => {
   // Helper to simulate translation (mock LLM translator)
