@@ -1,16 +1,20 @@
-import { sampleData } from "examples/sample-data";
+import { SAMPLE_DATA_A } from "examples/sample-data/data/a.js";
+import { redisClient } from "modules/redis";
 import { translateJson } from "modules/translate-json";
-import { RedisClient } from "modules/redis";
 import { TargetLanguage } from "modules/translate-json/modules/translate-batch";
 
-(async () => {
-  await new RedisClient().init(process.env.REDIS_URL);
+async function runExample(): Promise<void> {
+  await redisClient.init(process.env.REDIS_URL);
 
   const translatedJson = await translateJson({
-    jsonData: sampleData.a,
+    jsonData: SAMPLE_DATA_A,
     batchSize: 10,
     targetLanguage: TargetLanguage.ZH_TW,
   });
 
   console.log(JSON.stringify(translatedJson, null, 2));
-})();
+
+  process.exit(0);
+}
+
+runExample();
