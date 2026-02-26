@@ -1,4 +1,4 @@
-import { sampleData } from "modules/sample-data";
+import { sampleData } from "examples/sample-data";
 import { translateJson } from "modules/translate-json";
 import { RedisClient } from "modules/redis";
 import { TargetLanguage } from "modules/translate-json/modules/translate-batch";
