@@ -3,7 +3,7 @@ import {
   ValidationOptions,
   registerDecorator,
 } from "class-validator";
-import { isArray, isEmpty, isString } from "lodash";
+import { isArray, isString } from "lodash";
 
 export function IsNotBlankString(validationOptions?: ValidationOptions) {
   return (object: unknown, propertyName: string) => {
@@ -24,6 +24,6 @@ export function IsNotBlankString(validationOptions?: ValidationOptions) {
   };
 }
 
-export function isNotBlankString(value: any): boolean {
-  return isString(value) && !isEmpty(value.trim());
+export function isNotBlankString(value: unknown): boolean {
+  return isString(value) && value.trim().length > 0;
 }

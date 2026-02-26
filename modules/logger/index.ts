@@ -1,8 +1,6 @@
-import { isNumber } from "class-validator";
-import { isNotBlankString } from "modules/classValidator/customDecorator/IsNotBlankString";
+import chalk from "chalk";
 import { ClientError } from "modules/clientError";
 import { isClientError } from "modules/clientError/isClientError";
-import chalk from "chalk";
 
 export enum LogLevel {
   DEBUG = 0,
@@ -17,6 +15,13 @@ export type LoggerConfig = {
   prefix?: string;
   timestamp?: boolean;
 };
+
+const isDevelopment = process.env.APP_ENVIRONMENT === "development";
+const configuredLogLevel = Number(process.env.LOG_LEVEL);
+const minLogLevel =
+  isDevelopment || Number.isNaN(configuredLogLevel)
+    ? LogLevel.DEBUG
+    : configuredLogLevel;
 
 class Logger {
   private config: Required<LoggerConfig>;
@@ -78,11 +83,7 @@ class Logger {
     message: string,
     context?: LogContext,
   ): void {
-    if (
-      process.env.APP_ENVIRONMENT !== "development" &&
-      isNumber(Number(process.env.LOG_LEVEL)) &&
-      level < Number(process.env.LOG_LEVEL)
-    ) {
+    if (level < minLogLevel) {
       return;
     }
 
@@ -145,24 +146,19 @@ class Logger {
   }
 
   createChild(prefix?: string): Logger {
-    if (!prefix) {
+    const trimmedPrefix = prefix?.trim();
+    if (!trimmedPrefix) {
       return this;
     }
 
-    const cleanPrefix = prefix.trim();
+    const childPrefix = this.config.prefix
+      ? `${this.config.prefix}:${trimmedPrefix}`
+      : trimmedPrefix;
 
-    if (isNotBlankString(cleanPrefix)) {
-      const childPrefix = this.config.prefix
-        ? `${this.config.prefix}:${cleanPrefix}`
-        : cleanPrefix;
-
-      return new Logger({
-        ...this.config,
-        prefix: childPrefix,
-      });
-    }
-
-    throw new Error("Invalid logger prefix");
+    return new Logger({
+      ...this.config,
+      prefix: childPrefix,
+    });
   }
 }
 

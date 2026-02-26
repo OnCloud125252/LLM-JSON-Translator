@@ -6,6 +6,10 @@
   "scripts": {
     "start": "bun run src/main.ts",
     "start:dev": "bun run --watch src/main.ts",
+    "test": "bun test",
+    "check": "biome check",
+    "check:fix": "biome check --fix",
+    "check:fix-unsafe": "biome check --fix --unsafe",
     "type-check": "tsc --noEmit"
   },
   "keywords": [],

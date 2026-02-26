@@ -4,27 +4,27 @@ import { ClientError } from "modules/clientError";
 import { isClientError } from "modules/clientError/isClientError";
 import { Logger } from "modules/logger";
 
-const globalErrorHandlerLogger = new Logger({
+const logger = new Logger({
   prefix: "web-server",
 }).createChild("global-error-handler");
 
-export function globalErrorHandler(error: any | ClientError | Error) {
+export function globalErrorHandler(error: unknown): Response {
   if (isClientError(error)) {
     const clientError = error as ClientError;
+    const requestLogger = logger.createChild(clientError.requestUuid);
 
     if (
       clientError.payload?.errorMessage === "Invalid request endpoint or method"
     ) {
-      const errorObject = clientError.payload?.errorObject as any;
-      globalErrorHandlerLogger
-        .createChild(clientError.requestUuid)
-        .error(
-          `Invalid request endpoint or method: ${errorObject.method} ${errorObject.endpoint}`,
-        );
+      const errorObject = clientError.payload.errorObject as Record<
+        string,
+        string
+      >;
+      requestLogger.error(
+        `Invalid request endpoint or method: ${errorObject.method} ${errorObject.endpoint}`,
+      );
     } else {
-      globalErrorHandlerLogger
-        .createChild(clientError.requestUuid)
-        .error("Client error:", error);
+      requestLogger.error("Client error:", error);
     }
 
     return Response.json(
@@ -32,21 +32,14 @@ export function globalErrorHandler(error: any | ClientError | Error) {
         errorMessage: clientError.payload?.errorMessage,
         errorObject: clientError.payload?.errorObject,
       },
-      {
-        status: clientError.code,
-      },
+      { status: clientError.code },
     );
   }
 
-  globalErrorHandlerLogger
-    .createChild("unknown-error")
-    .error("Unexpected error:", error);
+  logger.createChild("unknown-error").error("Unexpected error:", error);
+
   return Response.json(
-    {
-      errorMessage: "Unexpected error occurred. Please try again.",
-    },
-    {
-      status: StatusCodes.INTERNAL_SERVER_ERROR,
-    },
+    { errorMessage: "Unexpected error occurred. Please try again." },
+    { status: StatusCodes.INTERNAL_SERVER_ERROR },
   );
 }
