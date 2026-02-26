@@ -14,6 +14,16 @@ dotenvConfig();
 const logger = new Logger({ prefix: "web-server" });
 const DEFAULT_BATCH_SIZE = 10;
 
+function verifyAppApiKey(): void {
+  if (!process.env.APP_API_KEY) {
+    logger
+      .createChild("startup")
+      .error("APP_API_KEY environment variable is not set");
+    throw new Error("APP_API_KEY environment variable is required");
+  }
+  logger.createChild("startup").info("APP_API_KEY is configured");
+}
+
 async function verifyOpenAIConnection(): Promise<void> {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -56,6 +66,7 @@ async function logRequest(request: Request, server: any): Promise<string> {
     .createChild("startup")
     .info(`Environment: ${process.env.APP_ENVIRONMENT}`);
 
+  verifyAppApiKey();
   await redisClient.init(process.env.REDIS_URL);
   await verifyOpenAIConnection();
 
