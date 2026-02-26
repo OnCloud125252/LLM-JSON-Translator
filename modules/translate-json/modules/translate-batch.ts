@@ -1,14 +1,13 @@
 import { xxh3 } from "@node-rs/xxhash";
-import OpenAI from "openai";
-import { isJSON } from "class-validator";
 import { StatusCodes } from "http-status-codes";
+import OpenAI from "openai";
 
-import { Logger } from "modules/logger";
-import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
-import { RedisClient } from "modules/redis";
-import { SYSTEM_PROMPT_EN_US } from "modules/system-prompts/en-US";
 import { ClientError } from "modules/clientError";
-import { TranslationBatch } from "../types/translation-batch";
+import { Logger } from "modules/logger";
+import { redisClient } from "modules/redis";
+import { SYSTEM_PROMPT_EN_US } from "modules/system-prompts/en-US";
+import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
+import { TranslationBatch } from "../index";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -29,63 +28,69 @@ const systemPrompts: Record<TargetLanguage, string> = {
 };
 
 const MAX_RETRIES = 5;
+const LLM_MODEL = "gpt-4.1-nano";
+const LLM_MAX_TOKENS = 32768;
+const LLM_TEMPERATURE = 0.8;
 
-export async function translateBatch(
+function getCacheKey(text: string, targetLanguage: TargetLanguage): string {
+  return String(xxh3.xxh128(text + targetLanguage));
+}
+
+async function getCachedTranslations(
   batch: TranslationBatch,
   targetLanguage: TargetLanguage,
-  retries = 0,
-): Promise<TranslationBatch> {
-  const stats = {
-    totalItems: batch.length,
-    fromCache: 0,
-    toTranslate: 0,
-    translated: 0,
-    retries,
-    warnings: 0,
-    errors: 0,
-  };
-
-  logger.debug(
-    `[Attempt ${retries + 1}/${
-      MAX_RETRIES + 1
-    }] Starting translation for ${stats.totalItems} items.`,
-  );
-
-  const results: TranslationBatch = [];
+): Promise<{ cached: TranslationBatch; toTranslate: TranslationBatch }> {
+  const cached: TranslationBatch = [];
   const toTranslate: TranslationBatch = [];
 
   for (const item of batch) {
-    const key = String(xxh3.xxh128(item.text + targetLanguage));
-    const cached = await RedisClient.get(key);
-    if (cached) {
+    const key = getCacheKey(item.text, targetLanguage);
+    const cachedValue = await redisClient.get(key);
+
+    if (cachedValue) {
       logger.debug(`Using cached translation for ${item.path}.`);
-      results.push({ path: item.path, text: cached });
-      stats.fromCache++;
+      cached.push({ path: item.path, text: cachedValue });
     } else {
       logger.debug(`Translating ${item.path}.`);
       toTranslate.push(item);
     }
   }
 
-  stats.toTranslate = toTranslate.length;
+  return { cached, toTranslate };
+}
 
-  if (toTranslate.length === 0) {
-    logger.debug("All items were found in cache. No translation needed.");
-    logger.debug(
-      `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
-    );
-    return results;
-  }
-
-  const formattedBatch = JSON.stringify({
-    needToTranslate: toTranslate,
+async function cacheTranslations(
+  results: TranslationBatch,
+  toTranslate: TranslationBatch,
+  targetLanguage: TargetLanguage,
+): Promise<void> {
+  const cachePromises = results.map(async (result) => {
+    const original = toTranslate.find((item) => item.path === result.path);
+    if (!original) {
+      logger.warn(
+        `Translation for ${result.path} not found in original batch.`,
+      );
+      return;
+    }
+    const key = getCacheKey(original.text, targetLanguage);
+    await redisClient.set(key, result.text);
+    logger.debug(`Cached translation for ${original.path}.`);
   });
 
+  await Promise.all(cachePromises);
+}
+
+async function callTranslationApi(
+  toTranslate: TranslationBatch,
+  targetLanguage: TargetLanguage,
+): Promise<TranslationBatch> {
+  const formattedBatch = JSON.stringify({ needToTranslate: toTranslate });
   const startTime = Date.now();
+
   const completion = await openai.responses.create({
-    model: "gpt-4.1-nano",
-    max_output_tokens: 32768,
-    temperature: 0.8,
+    model: LLM_MODEL,
+    max_output_tokens: LLM_MAX_TOKENS,
+    temperature: LLM_TEMPERATURE,
     instructions: systemPrompts[targetLanguage],
     input: [{ role: "user", content: formattedBatch }],
     text: {
@@ -116,79 +121,74 @@ export async function translateBatch(
     },
   });
 
-  if (isJSON(completion.output_text) === false) {
-    stats.warnings++;
-    logger.warn(
-      "Invalid output_text: Expected a non-null JSON object. Retrying translation.",
-    );
-    if (retries >= MAX_RETRIES) {
-      stats.errors++;
-      const errorMessage = `Translation failed after ${MAX_RETRIES} retries: Invalid JSON output.`;
-      logger.error(errorMessage);
-      logger.debug(
-        `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
-      );
-      throw new Error(errorMessage);
-    }
-    return translateBatch(batch, targetLanguage, retries + 1);
-  }
-
-  const newResults = JSON.parse(completion.output_text)
-    .results as TranslationBatch;
-
-  stats.translated = newResults.length;
-
-  const endTime = Date.now();
+  const response = JSON.parse(completion.output_text) as {
+    results: TranslationBatch;
+  };
 
   logger.debug(
-    `Translated ${stats.translated} items in ${endTime - startTime} ms.`,
+    `Translated ${response.results.length} items in ${Date.now() - startTime} ms.`,
   );
 
-  if (newResults.length !== toTranslate.length) {
-    stats.warnings++;
-    logger.warn(
-      `Translation result length (${newResults.length}) does not match input length (${toTranslate.length}). Retrying translation.`,
-    );
-    logger.debug(JSON.stringify(toTranslate, null, 2));
-    logger.debug(JSON.stringify(newResults, null, 2));
+  return response.results;
+}
 
-    if (retries >= MAX_RETRIES) {
-      stats.errors++;
-      const errorMessage = `Translation failed after ${MAX_RETRIES} retries: Mismatched translation result length.`;
-      logger.error(errorMessage);
-      logger.debug(
-        `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
-      );
-      throw new ClientError(
-        {
-          errorMessage,
-          errorObject: {
-            toTranslateLength: toTranslate.length,
-            newResultsLength: newResults.length,
+function validateResults(
+  results: TranslationBatch,
+  expectedCount: number,
+): void {
+  if (results.length !== expectedCount) {
+    logger.warn(
+      `Translation result length (${results.length}) does not match input length (${expectedCount}).`,
+    );
+    throw new Error("Mismatched translation result length");
+  }
+}
+
+export async function translateBatch(
+  batch: TranslationBatch,
+  targetLanguage: TargetLanguage,
+): Promise<TranslationBatch> {
+  let retries = 0;
+
+  while (true) {
+    logger.debug(
+      `[Attempt ${retries + 1}/${MAX_RETRIES + 1}] Starting translation for ${batch.length} items.`,
+    );
+
+    const { cached, toTranslate } = await getCachedTranslations(
+      batch,
+      targetLanguage,
+    );
+
+    if (toTranslate.length === 0) {
+      logger.debug("All items were found in cache. No translation needed.");
+      return cached;
+    }
+
+    try {
+      const newResults = await callTranslationApi(toTranslate, targetLanguage);
+      validateResults(newResults, toTranslate.length);
+      await cacheTranslations(newResults, toTranslate, targetLanguage);
+
+      return [...cached, ...newResults];
+    } catch (error) {
+      retries++;
+
+      if (retries > MAX_RETRIES) {
+        const errorMessage = `Translation failed after ${MAX_RETRIES} retries.`;
+        logger.error(errorMessage);
+        throw new ClientError(
+          {
+            errorMessage,
+            errorObject: { originalError: String(error) },
           },
-        },
-        StatusCodes.INTERNAL_SERVER_ERROR,
+          StatusCodes.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      logger.warn(
+        `Translation attempt failed, retrying... Error: ${String(error)}`,
       );
     }
-    return translateBatch(batch, targetLanguage, retries + 1);
   }
-
-  for (const tr of newResults) {
-    const orig = toTranslate.find((t) => t.path === tr.path);
-    if (orig) {
-      const key = String(xxh3.xxh128(orig.text + targetLanguage));
-      await RedisClient.set(key, tr.text);
-      logger.debug(`Cached translation for ${orig.path}.`);
-    } else {
-      stats.warnings++;
-      logger.warn(`Translation for ${tr.path} not found in original batch.`);
-    }
-    results.push(tr);
-  }
-
-  logger.debug(
-    `Translation summary: ${stats.translated}/${stats.toTranslate} items translated (${stats.fromCache} from cache). Retries: ${stats.retries}, Warnings: ${stats.warnings}, Errors: ${stats.errors}.`,
-  );
-
-  return results;
 }

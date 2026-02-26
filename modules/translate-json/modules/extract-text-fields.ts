@@ -1,48 +1,64 @@
-import { TranslationBatch } from "../types/translation-batch";
-import { shouldSkipTranslation } from "./should-skip-translation";
+import chunk from "lodash/chunk";
+import { TranslationBatch } from "../index";
 import { isPureText } from "./is-pure-text";
+import { shouldSkipTranslation } from "./should-skip-translation";
+
+interface TextField {
+  path: string;
+  text: string;
+}
+
+function buildPath(parentPath: string, key: string | number): string {
+  if (typeof key === "number") {
+    return parentPath ? `${parentPath}[${key}]` : `[${key}]`;
+  }
+  return parentPath ? `${parentPath}.${key}` : key;
+}
+
+function collectTextFields(
+  value: unknown,
+  currentPath: string,
+  disallowedKeys: string[],
+): TextField[] {
+  if (value === null || typeof value !== "object") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) =>
+      collectTextFields(item, buildPath(currentPath, index), disallowedKeys),
+    );
+  }
+
+  const fields: TextField[] = [];
+  const obj = value as Record<string, unknown>;
+
+  for (const [key, val] of Object.entries(obj)) {
+    const newPath = buildPath(currentPath, key);
+
+    if (shouldSkipTranslation(key, disallowedKeys)) {
+      continue;
+    }
+
+    if (typeof val === "string" && isPureText(val)) {
+      fields.push({ path: newPath, text: val });
+    } else if (typeof val === "object" && val !== null) {
+      fields.push(...collectTextFields(val, newPath, disallowedKeys));
+    }
+  }
+
+  return fields;
+}
 
 export function extractTextFields(
-  obj: any,
+  obj: unknown,
   batchSize: number,
   disallowedTranslateKeys?: string[],
 ): TranslationBatch[] {
-  const allTextFields: { path: string; text: string }[] = [];
-
-  const collectTextFields = (obj: any, path: string = "") => {
-    if (obj !== null && typeof obj === "object" && !Array.isArray(obj)) {
-      for (const key in obj) {
-        const newPath = path ? `${path}.${key}` : key;
-        const value = obj[key];
-
-        if (
-          isPureText(value) &&
-          !shouldSkipTranslation(key, disallowedTranslateKeys)
-        ) {
-          allTextFields.push({ path: newPath, text: value });
-        } else if (!shouldSkipTranslation(key, disallowedTranslateKeys)) {
-          collectTextFields(value, newPath);
-        }
-      }
-    } else if (Array.isArray(obj)) {
-      for (let i = 0; i < obj.length; i++) {
-        const newPath = `${path}[${i}]`;
-        const value = obj[i];
-
-        if (isPureText(value)) {
-          allTextFields.push({ path: newPath, text: value });
-        } else {
-          collectTextFields(value, newPath);
-        }
-      }
-    }
-  };
-  collectTextFields(obj, "");
-
-  const batches: TranslationBatch[] = [];
-  for (let i = 0; i < allTextFields.length; i += batchSize) {
-    batches.push(allTextFields.slice(i, i + batchSize));
-  }
-
-  return batches;
+  const allTextFields = collectTextFields(
+    obj,
+    "",
+    disallowedTranslateKeys ?? [],
+  );
+  return chunk(allTextFields, batchSize);
 }

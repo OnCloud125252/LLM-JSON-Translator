@@ -2,11 +2,19 @@ import { Logger } from "modules/logger";
 import { extractTextFields } from "./modules/extract-text-fields";
 import { TargetLanguage, translateBatch } from "./modules/translate-batch";
 import { updateJsonWithTranslations } from "./modules/update-json-with-translations";
-import { TranslationBatch } from "./types/translation-batch";
 
 const logger = new Logger({
   prefix: "function",
 }).createChild("translate-json");
+
+const CONCURRENT_BATCH_CHUNK_SIZE = 50;
+
+export interface TranslationItem {
+  path: string;
+  text: string;
+}
+
+export type TranslationBatch = TranslationItem[];
 
 export async function translateJson({
   jsonData,
@@ -14,11 +22,11 @@ export async function translateJson({
   targetLanguage,
   disallowedTranslateKeys,
 }: {
-  jsonData: any;
+  jsonData: unknown;
   batchSize: number;
   targetLanguage: TargetLanguage;
   disallowedTranslateKeys?: string[];
-}): Promise<any> {
+}): Promise<unknown> {
   const batches = extractTextFields(
     jsonData,
     batchSize,
@@ -26,10 +34,10 @@ export async function translateJson({
   );
   logger.debug(`Created ${batches.length} batches for translation`);
 
-  const translatedBatches: TranslationBatch = [];
+  const translatedItems: TranslationItem[] = [];
 
-  for (let i = 0; i < batches.length; i += 50) {
-    const chunk = batches.slice(i, Math.min(i + 50, batches.length));
+  for (let i = 0; i < batches.length; i += CONCURRENT_BATCH_CHUNK_SIZE) {
+    const chunk = batches.slice(i, i + CONCURRENT_BATCH_CHUNK_SIZE);
 
     logger.debug(
       `Processing batches ${i + 1} to ${i + chunk.length} of ${batches.length}...`,
@@ -39,16 +47,13 @@ export async function translateJson({
       chunk.map((batch) => translateBatch(batch, targetLanguage)),
     );
 
-    for (const batchResult of results) {
-      translatedBatches.push(...batchResult);
-    }
+    translatedItems.push(...results.flat());
   }
 
-  const translatedJson = updateJsonWithTranslations(
-    jsonData,
-    translatedBatches,
-  );
+  const translatedJson = updateJsonWithTranslations(jsonData, translatedItems);
 
   logger.debug("JSON translation completed");
   return translatedJson;
 }
+
+export { TargetLanguage };
