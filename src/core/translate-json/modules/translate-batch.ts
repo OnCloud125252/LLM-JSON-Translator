@@ -80,6 +80,15 @@ async function cacheTranslations(
       );
       return;
     }
+
+    // Only cache if the text was actually translated (changed)
+    if (original.text === result.text) {
+      logger.debug(
+        `Skipping cache for ${original.path} - text unchanged (likely already in target language).`,
+      );
+      return;
+    }
+
     const key = getCacheKey(original.text, targetLanguage);
     await redisClient.set(key, result.text);
     logger.debug(`Cached translation for ${original.path}.`);
