@@ -6,11 +6,31 @@ services:
       - "3000:3000"
     environment:
       - APP_ENVIRONMENT=production
-      - OPENAI_API_KEY=<YOUR-OPENAI-API-KEY>
-      - REDIS_URL=redis://default:JUafjt@llm-json-translator-redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
       - HOST=0.0.0.0
       - PORT=3000
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     container_name: llm-json-translator-redis
@@ -18,8 +38,17 @@ services:
     volumes:
       - redis_data:/data
     environment:
-      - REDIS_PASSWORD=JUafjt
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
 volumes:
   redis_data:
