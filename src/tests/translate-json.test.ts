@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { haveSamePaths, haveSameTypes } from "@core/json-compare";
 import type {
   TargetLanguage,
   TranslationBatch,
@@ -6,7 +7,6 @@ import type {
 } from "@core/translate-json";
 import { extractTextFields } from "@core/translate-json/modules/extract-text-fields";
 import { updateJsonWithTranslations } from "@core/translate-json/modules/update-json-with-translations";
-import { haveSamePaths, haveSameTypes } from "@core/json-compare";
 
 describe("translateJson - Integration Tests", () => {
   // Helper to simulate translation (mock LLM translator)
