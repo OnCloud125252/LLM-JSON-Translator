@@ -19,20 +19,13 @@ RUN bun install --production --frozen-lockfile
 FROM oven/bun:1
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup -g 1000 appgroup && \
-    adduser -u 1000 -G appgroup -s /bin/sh -D appuser
-
 # Set environment variables
 ENV NODE_ENV=production
 ENV APP_ENVIRONMENT=production
 
 # Copy production dependencies and source code
 COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --chown=appuser:appgroup . .
-
-# Switch to non-root user
-USER appuser
+COPY . .
 
 # Expose the application port
 EXPOSE 3000
