@@ -7,7 +7,11 @@ import { Logger } from "modules/logger";
 import { redisClient } from "modules/redis";
 import { SYSTEM_PROMPT_EN_US } from "modules/system-prompts/en-US";
 import { SYSTEM_PROMPT_ZH_TW } from "modules/system-prompts/zh-TW";
-import { TranslationBatch } from "../index";
+import {
+  createTranslationSchemas,
+  TranslationBatch,
+  TranslationResultSchema,
+} from "../schema";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -25,6 +29,11 @@ export enum TargetLanguage {
 const systemPrompts: Record<TargetLanguage, string> = {
   [TargetLanguage.EN_US]: SYSTEM_PROMPT_EN_US,
   [TargetLanguage.ZH_TW]: SYSTEM_PROMPT_ZH_TW,
+};
+
+const languageNames: Record<TargetLanguage, string> = {
+  [TargetLanguage.EN_US]: "English (US)",
+  [TargetLanguage.ZH_TW]: "Traditional Chinese (繁體中文)",
 };
 
 const MAX_RETRIES = 5;
@@ -87,6 +96,10 @@ async function callTranslationApi(
   const formattedBatch = JSON.stringify({ needToTranslate: toTranslate });
   const startTime = Date.now();
 
+  const { TranslationResultJsonSchema } = createTranslationSchemas(
+    languageNames[targetLanguage],
+  );
+
   const completion = await openai.responses.create({
     model: LLM_MODEL,
     max_output_tokens: LLM_MAX_TOKENS,
@@ -97,39 +110,25 @@ async function callTranslationApi(
       format: {
         type: "json_schema",
         name: "translation-result",
-        schema: {
-          type: "object",
-          properties: {
-            results: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  path: { type: "string" },
-                  text: { type: "string" },
-                },
-                required: ["path", "text"],
-                additionalProperties: false,
-              },
-              additionalProperties: false,
-            },
-          },
-          required: ["results"],
-          additionalProperties: false,
-        },
+        schema: TranslationResultJsonSchema,
       },
     },
   });
 
-  const response = JSON.parse(completion.output_text) as {
-    results: TranslationBatch;
-  };
-
-  logger.debug(
-    `Translated ${response.results.length} items in ${Date.now() - startTime} ms.`,
+  const parsed = TranslationResultSchema.safeParse(
+    JSON.parse(completion.output_text),
   );
 
-  return response.results;
+  if (!parsed.success) {
+    logger.error(`Invalid response format: ${parsed.error.message}`);
+    throw new Error(`Response validation failed: ${parsed.error.message}`);
+  }
+
+  logger.debug(
+    `Translated ${parsed.data.results.length} items in ${Date.now() - startTime} ms.`,
+  );
+
+  return parsed.data.results;
 }
 
 function validateResults(

@@ -21,15 +21,6 @@ Translate the provided text values to Traditional Chinese while preserving the e
 }
 \`\`\`
 
-## Output Structure
-\`\`\`json
-{
-  "results": [
-    {"path": "exact.path[0].here", "text": "翻譯後文字"}
-  ]
-}
-\`\`\`
-
 ## Translation Rules
 - Empty text → return as-is ("")
 - Already Traditional Chinese → return unchanged

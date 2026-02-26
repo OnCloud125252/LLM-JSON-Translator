@@ -21,15 +21,6 @@ Translate the provided text values to English (US) while preserving the exact JS
 }
 \`\`\`
 
-## Output Structure
-\`\`\`json
-{
-  "results": [
-    {"path": "exact.path[0].here", "text": "Translated text"}
-  ]
-}
-\`\`\`
-
 ## Translation Rules
 - Empty text → return as-is ("")
 - Already English (US) → return unchanged
