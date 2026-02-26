@@ -22,4 +22,4 @@
 ## Testing & Validation
 
 - Always run tests after making changes if test scripts exist
-- Run linting and type checking before completing tasks: `bun run check:fix && bun run type-check`
+- Run linting and type checking before completing tasks: `bun run check:fix && bun run type:check`

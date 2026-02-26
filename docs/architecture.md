@@ -5,11 +5,13 @@
 ```
 ├── src/                    # Application entry point and HTTP server
 │   ├── main.ts            # HTTP server setup with Bun.serve
+│   ├── core/              # Core business logic
+│   │   ├── cache/         # L1 cache stats tracking
+│   │   ├── redis/         # Redis client with L1/L2 caching
+│   │   ├── translate-json/# Core translation logic
+│   │   └── logger/        # Structured logging
 │   └── server/controller/ # Route controllers
-├── modules/               # Shared business logic modules
-│   ├── translate-json/    # Core translation logic
-│   ├── redis/             # Redis client wrapper
-│   ├── logger/            # Structured logging
+├── modules/               # Shared utilities (legacy)
 │   ├── clientError/       # Error handling utilities
 │   └── system-prompts/    # LLM system prompts (i18n)
 └── examples/              # Usage examples

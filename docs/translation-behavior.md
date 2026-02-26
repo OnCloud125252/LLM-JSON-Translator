@@ -141,14 +141,23 @@ The batch size is set server-side and cannot be overridden per request.
 
 ## Caching
 
-### Cache Backends
+### Cache Architecture
 
-The translator supports two cache backends:
+The translator uses a two-tier caching system:
+
+| Tier | Backend | Latency | Purpose |
+|------|---------|---------|---------|
+| L1 | In-memory hot cache | Sub-millisecond | Frequently accessed translations |
+| L2 | Redis or in-memory | Millisecond | Persistent or fallback storage |
+
+**L1 Hot Cache**: Always active, even with Redis. Provides ultra-fast lookups for hot keys.
+
+**L2 Cache Backend**:
 
 | Backend | Persistence | TTL | Use Case |
 |---------|-------------|-----|----------|
 | Redis | Persistent | 1 hour (default) | Production |
-| In-memory | Lost on restart | No expiration | Development |
+| In-memory | Lost on restart | 1 hour (default) | Development |
 
 The system automatically selects the backend based on `REDIS_URL` configuration:
 
@@ -167,9 +176,10 @@ Using XXH3-128 hash for fast, collision-resistant keys. All keys are prefixed wi
 
 ### Cache Behavior
 
-- **Hit**: Returns cached translation immediately, no LLM call
-- **Miss**: Translates via LLM, stores result in cache, returns translation
-- **TTL**: Redis entries expire after 1 hour by default; in-memory entries never expire
+- **L1 Hit**: Returns cached translation immediately from memory (sub-millisecond)
+- **L2 Hit**: Returns cached translation from Redis/in-memory, populates L1
+- **Miss**: Translates via LLM, stores result in cache (both tiers), returns translation
+- **TTL**: L1 entries expire after 5 minutes (default); L2 Redis entries expire after 1 hour; in-memory entries expire after 1 hour
 
 ### Cache Efficiency
 

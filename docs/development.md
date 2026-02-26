@@ -35,7 +35,21 @@
 
 ## Cache Configuration
 
-The translator supports two cache backends:
+The translator supports a two-tier caching system:
+
+| Tier | Backend | Purpose |
+|------|---------|---------|
+| L1 | In-memory hot cache | Sub-millisecond lookups for frequently accessed keys |
+| L2 | Redis or in-memory | Persistent or fallback storage |
+
+### L1 Hot Cache
+
+The L1 cache is always active, even when Redis is configured. It stores frequently accessed translations for ultra-fast lookups.
+
+- Configurable via `L1_CACHE_MAX_SIZE` and `L1_CACHE_TTL_SECONDS`
+- Default: 1000 entries, 5-minute TTL
+
+### L2 Cache Backend
 
 | Backend | Persistence | Configuration |
 |---------|-------------|---------------|

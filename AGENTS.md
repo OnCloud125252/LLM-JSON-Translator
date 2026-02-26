@@ -20,7 +20,7 @@ A Bun-based HTTP service that translates JSON structures using OpenAI's LLM, wit
 bun install
 
 # Type check
-bun run type-check
+bun run type:check
 
 # Run tests
 bun test
@@ -33,7 +33,7 @@ bun start
 
 # Lint and format
 bun run check:fix
-bun run lint:md
+bun run check-md:fix
 ```
 
 ## Essential Reading
