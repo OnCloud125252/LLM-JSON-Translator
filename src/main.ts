@@ -2,45 +2,42 @@ import { config as dotenvConfig } from "dotenv";
 import { StatusCodes } from "http-status-codes";
 import { v4 as uuidv4 } from "uuid";
 
-import { RedisClient } from "modules/redis";
-import { Logger } from "modules/logger";
 import { ClientError } from "modules/clientError";
+import { Logger } from "modules/logger";
+import { redisClient } from "modules/redis";
 import { globalErrorHandler } from "modules/server/global-error-handler";
-import { TranslateJson } from "./server/controller/translateJson";
+import { handleTranslateJsonRequest } from "./server/controller/translateJson";
 
 dotenvConfig();
 
-const webServerStartupLogger = new Logger({
-  prefix: "web-server",
-}).createChild("startup");
-const webServerRequestLogger = new Logger({
-  prefix: "web-server",
-}).createChild("request");
-const webServerResponseLogger = new Logger({
-  prefix: "web-server",
-}).createChild("response");
+const logger = new Logger({ prefix: "web-server" });
+const DEFAULT_BATCH_SIZE = 10;
 
-async function requestLogger(request: Request, server: any) {
-  const url = new URL(request.url);
-
+async function logRequest(request: Request, server: any): Promise<string> {
   const requestUuid = uuidv4();
-  webServerRequestLogger
+  const url = new URL(request.url);
+  const clientIp = server.requestIP(request);
+  const contentLength = (await request.clone().bytes()).byteLength;
+
+  logger
+    .createChild("request")
     .createChild(requestUuid)
     .info(
-      `${server.requestIP(request).address}:${server.requestIP(request).port} | ${request.method} ${url.pathname} | Content length: ${(await request.clone().bytes()).byteLength}`,
+      `${clientIp.address}:${clientIp.port} | ${request.method} ${url.pathname} | Content length: ${contentLength}`,
     );
 
-  return { requestUuid };
+  return requestUuid;
 }
 
 (async () => {
-  const packageJsonFile = Bun.file("./package.json");
-  const packageJson = await packageJsonFile.json();
+  const packageJson = await Bun.file("./package.json").json();
 
-  webServerStartupLogger.info(`Version: ${packageJson.version}`);
-  webServerStartupLogger.info(`Environment: ${process.env.APP_ENVIRONMENT}`);
+  logger.createChild("startup").info(`Version: ${packageJson.version}`);
+  logger
+    .createChild("startup")
+    .info(`Environment: ${process.env.APP_ENVIRONMENT}`);
 
-  await new RedisClient().init(process.env.REDIS_URL);
+  await redisClient.init(process.env.REDIS_URL);
 
   const server = Bun.serve({
     hostname: process.env.HOST || "127.0.0.1",
@@ -48,39 +45,36 @@ async function requestLogger(request: Request, server: any) {
     development: process.env.APP_ENVIRONMENT === "development",
     maxRequestBodySize: 1000 * 1024 * 1024,
     routes: {
-      [TranslateJson.path]: {
+      "/translate": {
         POST: async (request, server) => {
-          const { requestUuid } = await requestLogger(request, server);
-
-          return await new TranslateJson({
+          const requestUuid = await logRequest(request, server);
+          const responseLogger = logger
+            .createChild("response")
+            .createChild(requestUuid);
+          return handleTranslateJsonRequest(
             request,
-            webServerResponseLogger:
-              webServerResponseLogger.createChild(requestUuid),
+            responseLogger,
             requestUuid,
-          })
-            .middleware()
-            .guard()
-            .POST();
+            DEFAULT_BATCH_SIZE,
+          );
         },
       },
     },
     async fetch(request) {
       const url = new URL(request.url);
-      const requestUuid = uuidv4();
-
       throw new ClientError(
         {
           errorMessage: "Invalid request endpoint or method",
           errorObject: { endpoint: url.pathname, method: request.method },
         },
         StatusCodes.NOT_FOUND,
-        requestUuid,
+        uuidv4(),
       );
     },
     error: globalErrorHandler,
   });
 
-  webServerStartupLogger.info(
-    `Listening on http://${server.hostname}:${server.port}`,
-  );
+  logger
+    .createChild("startup")
+    .info(`Listening on http://${server.hostname}:${server.port}`);
 })();
