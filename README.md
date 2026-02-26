@@ -43,10 +43,10 @@ Response:
 
 The following target languages are supported:
 
-| Language | Code |
-|----------|------|
-| English (US) | `en-US` |
-| Chinese (Traditional) | `zh-TW` |
+| Language | Code | Enum Value |
+|----------|------|------------|
+| English (US) | `en-US` | `TargetLanguage.EN_US` |
+| Chinese (Traditional) | `zh-TW` | `TargetLanguage.ZH_TW` |
 
 ### Batch Processing
 
@@ -129,7 +129,7 @@ cp .env.example .env
 | Variable | Description |
 |----------|-------------|
 | `OPENAI_API_KEY` | Your OpenAI API key |
-| `APP_API_KEY` | API key for authenticating requests to this server |
+| `APP_API_KEY` | API key for authenticating requests to this server (used in `Authorization: Bearer <key>` header) |
 
 **Optional environment variables:**
 

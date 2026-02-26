@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+bun.lockb
+
+# Build outputs
+dist
+build
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docs
+*.md
+!README.md
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs
+
+# Test
+coverage
+*.test.ts
+*.spec.ts
+__tests__
