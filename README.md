@@ -8,6 +8,7 @@
 - [Features](#features)
 - [API Reference](#api-reference)
 - [Configuration](#configuration)
+- [Testing](#testing)
 - [FAQs](#faqs)
 - [Installation](#installation)
 
@@ -41,7 +42,7 @@ Response:
 
 ### Supported Languages
 
-The following target languages are supported:
+You can translate your JSON content into the following languages:
 
 | Language | Code | Enum Value |
 |----------|------|------------|
@@ -50,15 +51,15 @@ The following target languages are supported:
 
 ### Batch Processing
 
-Translations are processed in batches (default size: 10) to optimize API usage. The server handles large JSON structures by automatically chunking batches into groups of 50 for parallel processing.
+Translations are processed in batches (default size: 10) to optimize API usage. You can configure the batch size via the `BATCH_SIZE` environment variable. The server handles large JSON structures by automatically chunking batches into groups of 50 for parallel processing. See [`translateJson`](./src/core/translate-json/index.ts#translateJson) for details.
 
 ### Redis Caching
 
-Translated text is cached using content-addressable storage (hash of source text + target language). Subsequent requests for the same text return instantly from cache without calling the LLM.
+Translated text is cached using content-addressable storage (hash of source text + target language). Subsequent requests for the same text return instantly from cache without calling the LLM. The cache layer is implemented in [`redis/index.ts`](./src/core/redis/index.ts).
 
 ### Field Exclusion
 
-You can exclude specific keys from translation using the `disallowedTranslateKeys` parameter:
+You can exclude specific keys from translation using the `disallowedTranslateKeys` parameter. This is handled by [`should-skip-translation.ts`](./src/core/translate-json/modules/should-skip-translation.ts):
 
 ```bash
 curl -X POST http://localhost:3000/translate \
@@ -79,7 +80,7 @@ In this example, only `name` will be translated; `id` and `sku` remain unchanged
 
 ### Retry Logic
 
-The translation service automatically retries failed requests (up to 5 attempts) for transient errors like invalid JSON responses or mismatched result counts.
+The translation service automatically retries failed requests (up to 5 attempts) for transient errors like invalid JSON responses or mismatched result counts. The retry logic is handled in [`translate-batch.ts`](./src/core/translate-json/modules/translate-batch.ts).
 
 ## API Reference
 
@@ -139,6 +140,22 @@ cp .env.example .env
 | `REDIS_URL` | `redis://default:ABC@localhost:10001` | Redis connection URL |
 | `HOST` | `127.0.0.1` | Server bind address |
 | `PORT` | `3000` | Server port |
+
+## Testing
+
+You can run the test suite with:
+
+```bash
+bun test
+```
+
+For development with watch mode:
+
+```bash
+bun run test:watch
+```
+
+The test suite includes unit tests for core translation logic. See [`src/tests/`](./src/tests/) for details.
 
 ## FAQs
 
