@@ -74,12 +74,16 @@ export class TokenCalculator {
   }
 
   /**
-   * Calculate tokens for the complete API payload
+   * Calculate tokens for the complete API payload.
+   * Returns both token estimate and the formatted batch string to avoid double JSON.stringify.
    */
   estimateBatchTokens(
     items: Array<{ path?: string; text?: string }>,
     systemPrompt: string,
-  ): TokenEstimate {
+  ): TokenEstimate & { formattedBatch: string } {
+    // Single JSON.stringify call - cache the result
+    const formattedBatch = JSON.stringify({ needToTranslate: items });
+
     // Calculate text content tokens
     const textTokens = items.reduce((sum, item) => {
       const textTokenCount = item.text ? this.countTokens(item.text) : 0;
@@ -87,8 +91,7 @@ export class TokenCalculator {
       return sum + textTokenCount + pathTokenCount;
     }, 0);
 
-    // Calculate JSON wrapper overhead
-    const formattedBatch = JSON.stringify({ needToTranslate: items });
+    // Calculate JSON wrapper overhead from the already-stringified batch
     const jsonOverheadTokens = this.countTokens(formattedBatch);
 
     // Calculate system prompt tokens
@@ -99,6 +102,7 @@ export class TokenCalculator {
       jsonOverheadTokens,
       systemPromptTokens,
       totalTokens: jsonOverheadTokens + systemPromptTokens,
+      formattedBatch,
     };
   }
 

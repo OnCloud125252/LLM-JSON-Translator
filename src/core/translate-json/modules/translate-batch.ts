@@ -40,12 +40,42 @@ const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 5;
 const LLM_MODEL = process.env.LLM_MODEL || "gpt-4.1-mini";
 const LLM_MAX_TOKENS = 32768;
 const LLM_TEMPERATURE = 0.8;
+const CACHE_KEY_MEMOIZATION_LIMIT =
+  Number(process.env.CACHE_KEY_MEMOIZATION_LIMIT) || 10000;
 
 // Initialize token calculator for the configured model
 const tokenCalculator = new TokenCalculator(LLM_MODEL);
 
+// LRU cache for memoizing cache key computations
+const cacheKeyMemo = new Map<string, string>();
+
 function getCacheKey(text: string, targetLanguage: TargetLanguage): string {
-  return String(xxh3.xxh128(text + targetLanguage));
+  // For short texts, use simple string concatenation to avoid hash overhead
+  if (text.length < 100) {
+    return `${text}:${targetLanguage}`;
+  }
+
+  const memoKey = text + targetLanguage;
+
+  // Check memoized cache keys
+  const memoized = cacheKeyMemo.get(memoKey);
+  if (memoized) {
+    return memoized;
+  }
+
+  // Compute hash and store in memoization cache
+  const hash = String(xxh3.xxh128(memoKey));
+
+  // Evict oldest entries if at capacity
+  if (cacheKeyMemo.size >= CACHE_KEY_MEMOIZATION_LIMIT) {
+    const firstKey = cacheKeyMemo.keys().next().value;
+    if (firstKey !== undefined) {
+      cacheKeyMemo.delete(firstKey);
+    }
+  }
+
+  cacheKeyMemo.set(memoKey, hash);
+  return hash;
 }
 
 async function getCachedTranslations(
@@ -55,10 +85,16 @@ async function getCachedTranslations(
   const cached: TranslationBatch = [];
   const toTranslate: TranslationBatch = [];
 
-  for (const item of batch) {
+  // Parallelize cache lookups for better performance
+  const cachePromises = batch.map(async (item) => {
     const key = getCacheKey(item.text, targetLanguage);
     const cachedValue = await redisClient.get(key);
+    return { item, cachedValue };
+  });
 
+  const results = await Promise.all(cachePromises);
+
+  for (const { item, cachedValue } of results) {
     if (cachedValue) {
       logger.debug(`Using cached translation for ${item.path}.`);
       cached.push({ path: item.path, text: cachedValue });
@@ -104,8 +140,11 @@ async function cacheTranslations(
 async function callTranslationApi(
   toTranslate: TranslationBatch,
   targetLanguage: TargetLanguage,
+  formattedBatch?: string,
 ): Promise<TranslationBatch> {
-  const formattedBatch = JSON.stringify({ needToTranslate: toTranslate });
+  // Use pre-formatted batch if provided (from token calculator), otherwise stringify
+  const batchString =
+    formattedBatch ?? JSON.stringify({ needToTranslate: toTranslate });
   const startTime = Date.now();
 
   const { TranslationResultJsonSchema } = createTranslationSchemas(
@@ -117,7 +156,7 @@ async function callTranslationApi(
     max_output_tokens: LLM_MAX_TOKENS,
     temperature: LLM_TEMPERATURE,
     instructions: systemPrompts[targetLanguage],
-    input: [{ role: "user", content: formattedBatch }],
+    input: [{ role: "user", content: batchString }],
     text: {
       format: {
         type: "json_schema",
@@ -177,7 +216,11 @@ async function translateBatchWithTokenCheck(
 
   // If batch is within limits, translate normally
   if (tokenEstimate.totalTokens <= maxTokens) {
-    return translateBatchInternal(batch, targetLanguage);
+    return translateBatchInternal(
+      batch,
+      targetLanguage,
+      tokenEstimate.formattedBatch,
+    );
   }
 
   // If single field is too large, throw error
@@ -223,6 +266,7 @@ async function translateBatchWithTokenCheck(
 async function translateBatchInternal(
   batch: TranslationBatch,
   targetLanguage: TargetLanguage,
+  formattedBatch?: string,
 ): Promise<TranslationBatch> {
   let retries = 0;
 
@@ -232,7 +276,11 @@ async function translateBatchInternal(
     );
 
     try {
-      const newResults = await callTranslationApi(batch, targetLanguage);
+      const newResults = await callTranslationApi(
+        batch,
+        targetLanguage,
+        formattedBatch,
+      );
       validateResults(newResults, batch.length);
       await cacheTranslations(newResults, batch, targetLanguage);
 
