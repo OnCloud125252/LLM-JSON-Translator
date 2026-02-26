@@ -16,10 +16,11 @@ import {
   isURL, // Checks if the string is an url.
   isUUID, // Checks if the string is a UUID (version 3, 4 or 5).
 } from "class-validator";
+import type { MobilePhoneLocale } from "validator";
 
 export function isPureText(value: string): boolean {
   const isMobilePhoneInAllLocales = (value: string): boolean => {
-    const locales = [
+    const locales: MobilePhoneLocale[] = [
       "ar-AE",
       "ar-BH",
       "ar-DZ",
@@ -114,7 +115,7 @@ export function isPureText(value: string): boolean {
       "zh-TW",
     ];
 
-    return locales.some((locale) => isMobilePhone(value, locale as string));
+    return locales.some((locale) => isMobilePhone(value, locale));
   };
 
   return (
