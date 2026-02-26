@@ -1,4 +1,4 @@
-import { encoding_for_model, TiktokenModel } from "tiktoken";
+import { encoding_for_model, Tiktoken, TiktokenModel } from "tiktoken";
 
 export interface ModelConfig {
   name: string;
@@ -43,8 +43,9 @@ export interface TokenEstimate {
 }
 
 export class TokenCalculator {
-  private encoder;
+  private encoder: Tiktoken;
   private modelConfig: ModelConfig;
+  private isFreed = false;
 
   constructor(modelName: string) {
     // Map model name to tiktoken model name
@@ -127,6 +128,9 @@ export class TokenCalculator {
   }
 
   free(): void {
-    this.encoder.free();
+    if (!this.isFreed) {
+      this.encoder.free();
+      this.isFreed = true;
+    }
   }
 }
