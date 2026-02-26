@@ -9,6 +9,7 @@ Translates JSON payload using LLM.
 #### Authentication
 
 Requires Bearer token authentication:
+
 ```
 Authorization: Bearer <APP_API_KEY>
 ```
@@ -16,10 +17,12 @@ Authorization: Bearer <APP_API_KEY>
 #### Request
 
 **Headers:**
+
 - `Content-Type: application/json` (required)
 - `Authorization: Bearer <token>` (required)
 
 **Body:**
+
 ```typescript
 {
   json: object;                    // JSON object to translate
@@ -29,6 +32,7 @@ Authorization: Bearer <APP_API_KEY>
 ```
 
 **Example:**
+
 ```json
 {
   "json": {
@@ -43,6 +47,7 @@ Authorization: Bearer <APP_API_KEY>
 #### Response
 
 **Success (200 OK):**
+
 ```json
 {
   "title": "你好世界",
@@ -51,6 +56,7 @@ Authorization: Bearer <APP_API_KEY>
 ```
 
 **Error (400 Bad Request):**
+
 ```json
 {
   "errorMessage": "Body didn't meet requirements",
@@ -63,6 +69,7 @@ Authorization: Bearer <APP_API_KEY>
 ```
 
 **Error (401 Unauthorized):**
+
 ```json
 {
   "errorMessage": "Invalid API key",
@@ -93,6 +100,7 @@ All errors follow this structure:
 ```
 
 HTTP status codes:
+
 - `400` - Bad Request (invalid input, JSON parse error)
 - `401` - Unauthorized (invalid API key)
 - `404` - Not Found (invalid endpoint)

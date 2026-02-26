@@ -293,6 +293,7 @@ Arrays containing mixed types are handled correctly:
 ```
 
 Output paths:
+
 - `items[0]` → Translated text
 - `items[1]` → Skipped (number)
 - `items[2]` → Skipped (null)

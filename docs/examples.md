@@ -48,6 +48,7 @@ The `SAMPLE_DATA_A` file demonstrates a travel itinerary with complex nesting:
 ```
 
 Notice how the translator handles:
+
 - **Nested objects**: Traverses arbitrarily deep structures
 - **Arrays**: Preserves indices in path notation (e.g., `days[0].points[0].site.name`)
 - **Mixed data types**: Numbers, booleans, and nulls are preserved unchanged
@@ -59,6 +60,7 @@ Notice how the translator handles:
 ### Prerequisites
 
 Ensure you have:
+
 1. Redis running (`docker compose up -d`)
 2. Environment variables configured in `.env`
 
@@ -129,6 +131,7 @@ When translating `SAMPLE_DATA_A` to `zh-TW`, the output preserves the structure 
 ```
 
 Note that:
+
 - `itineraryId`, `id`, `todosListsId` remain unchanged (identifiers)
 - `website` URL remains unchanged (no spaces, looks like identifier)
 - `whiteSpace` remains unchanged (only whitespace)
