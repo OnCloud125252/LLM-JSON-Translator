@@ -28,14 +28,15 @@ Run checks with: `bun run check:fix`
 - Use meaningful variable names, avoid single letters except for loop indices
 - Avoid using barrel imports
 
-## Path Mapping
+## Path Mapping (Path Aliases)
 
-Uses `"baseUrl": "./"` with direct folder imports:
+The project uses TypeScript path aliases defined in `tsconfig.json`:
 
 ```typescript
-// Good
-import { Logger } from "modules/logger";
-import { ClientError } from "modules/clientError";
+// Good - use path aliases
+import { Logger } from "@core/logger";
+import { ClientError } from "@core/clientError";
+import { translateJson } from "@core/translate-json";
 
 // Avoid relative imports like "../../../modules/logger"
 ```

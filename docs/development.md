@@ -101,9 +101,70 @@ The Dockerfile uses multi-stage builds:
 3. `prod-deps` - Install production dependencies only
 4. Final image - Lean production image
 
+### Security Features
+
+The production image includes several security enhancements:
+
+| Feature | Description |
+|---------|-------------|
+| Non-root user | Runs as `appuser` (UID 1000) instead of root |
+| Read-only root filesystem | Recommended for production |
+| Health checks | Built-in Docker health check using `/health` endpoint |
+| Minimal image | Only production dependencies included |
+
+### Docker Compose
+
+The project includes a `docker-compose.yml` for running the full stack:
+
+```bash
+docker compose up -d
+```
+
+This starts:
+
+- **app** - The translation API service
+- **redis** - Cache backend (optional)
+
+The compose file includes:
+
+- Health checks for both services
+- Resource limits (memory reservations/limits)
+- Log rotation (10MB max, 3 files)
+- Persistent Redis volume
+- Restart policies
+
 ## TypeScript Configuration
 
 - Target: ES2021
 - `strictNullChecks: false`
 - `noImplicitAny: false`
 - Includes: `src/**/*.ts`, `modules/**/*.ts`, `examples/**/*.ts`
+
+## Testing
+
+### Unit Tests
+
+Run unit tests with:
+
+```bash
+bun test
+```
+
+### API Behavior Tests
+
+Run manual API behavior tests (requires running server):
+
+```bash
+# Start the server in one terminal
+bun run start:dev
+
+# Run the API behavior tests in another terminal
+bun run test:api-behavior
+```
+
+This test script verifies:
+
+- Server availability and health endpoint
+- Translation functionality
+- Authentication requirements
+- Error handling

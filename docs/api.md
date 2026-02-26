@@ -105,3 +105,58 @@ HTTP status codes:
 - `401` - Unauthorized (invalid API key)
 - `404` - Not Found (invalid endpoint)
 - `500` - Internal Server Error (unexpected errors)
+
+---
+
+## Additional Endpoints
+
+### GET /
+
+Returns information about the API and lists all available routes.
+
+**Response (200 OK):**
+
+```json
+{
+  "name": "llm-json-translator",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/",
+      "method": "GET",
+      "description": "List all available routes"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "description": "Health check endpoint"
+    },
+    {
+      "path": "/translate",
+      "method": "POST",
+      "description": "Translate JSON structure to target language"
+    }
+  ]
+}
+```
+
+### GET /health
+
+Health check endpoint for monitoring and container orchestration.
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "environment": "production",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+This endpoint is used by:
+
+- Docker health checks
+- Kubernetes readiness/liveness probes
+- Load balancer health monitoring
