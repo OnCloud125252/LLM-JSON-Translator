@@ -6,12 +6,13 @@
   "scripts": {
     "start": "bun run src/main.ts",
     "start:dev": "bun run --watch src/main.ts",
+    "test:api-behavior": "RUN_MANUAL_TESTS=1 bun test src/tests/api-behavior.manual.test.ts",
     "test": "bun test",
     "check": "biome check",
     "check:fix": "biome check --fix",
     "check:fix-unsafe": "biome check --fix --unsafe",
-    "type-check": "tsc --noEmit",
-    "lint:md": "markdownlint-cli2 --config ~/.markdownlint-cli2.jsonc --fix \"**/*.md\" \"#node_modules\" \"#dist\" \"#docker-utils\""
+    "type:check": "tsc --noEmit",
+    "check-md:fix": "markdownlint-cli2 --config ~/.markdownlint-cli2.jsonc --fix \"**/*.md\" \"#node_modules\" \"#dist\" \"#docker-utils\""
   },
   "keywords": [],
   "author": "",
