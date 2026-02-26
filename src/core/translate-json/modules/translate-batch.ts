@@ -3,6 +3,7 @@ import { Logger } from "@core/logger";
 import { redisClient } from "@core/redis";
 import { SYSTEM_PROMPT_EN_US } from "@core/system-prompts/en-US";
 import { SYSTEM_PROMPT_ZH_TW } from "@core/system-prompts/zh-TW";
+import { TokenCalculator } from "@core/translate-json/modules/token-calculator";
 import {
   createTranslationSchemas,
   TranslationBatch,
@@ -39,6 +40,9 @@ const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 5;
 const LLM_MODEL = process.env.LLM_MODEL || "gpt-4.1-mini";
 const LLM_MAX_TOKENS = 32768;
 const LLM_TEMPERATURE = 0.8;
+
+// Initialize token calculator for the configured model
+const tokenCalculator = new TokenCalculator(LLM_MODEL);
 
 function getCacheKey(text: string, targetLanguage: TargetLanguage): string {
   return String(xxh3.xxh128(text + targetLanguage));
@@ -151,7 +155,72 @@ function validateResults(
   }
 }
 
-export async function translateBatch(
+/**
+ * Recursively translate a batch with token safety checking.
+ * Splits batches that exceed the token limit into smaller chunks.
+ */
+async function translateBatchWithTokenCheck(
+  batch: TranslationBatch,
+  targetLanguage: TargetLanguage,
+): Promise<TranslationBatch> {
+  // Check token count including system prompt
+  const systemPrompt = systemPrompts[targetLanguage];
+  const tokenEstimate = tokenCalculator.estimateBatchTokens(
+    batch,
+    systemPrompt,
+  );
+  const maxTokens = tokenCalculator.getMaxInputTokens();
+
+  logger.debug(
+    `Token estimate for batch of ${batch.length} items: ${tokenEstimate.totalTokens} tokens (max safe: ${maxTokens})`,
+  );
+
+  // If batch is within limits, translate normally
+  if (tokenEstimate.totalTokens <= maxTokens) {
+    return translateBatchInternal(batch, targetLanguage);
+  }
+
+  // If single field is too large, throw error
+  if (batch.length === 1) {
+    const item = batch[0];
+    const errorMessage = `Text field at path '${item.path}' is too large to translate (${tokenEstimate.totalTokens} tokens). Maximum safe size is ${maxTokens} tokens. Consider splitting this text into smaller chunks.`;
+    logger.error(errorMessage);
+    throw new ClientError(
+      {
+        errorMessage,
+        errorObject: {
+          path: item.path,
+          tokenCount: tokenEstimate.totalTokens,
+          maxTokens,
+        },
+      },
+      StatusCodes.BAD_REQUEST,
+    );
+  }
+
+  // Split batch in half and process recursively
+  const mid = Math.floor(batch.length / 2);
+  const firstHalf = batch.slice(0, mid);
+  const secondHalf = batch.slice(mid);
+
+  logger.debug(
+    `Batch too large (${tokenEstimate.totalTokens} tokens), splitting into ${firstHalf.length} and ${secondHalf.length} items`,
+  );
+
+  // Process both halves in parallel
+  const [firstResults, secondResults] = await Promise.all([
+    translateBatchWithTokenCheck(firstHalf, targetLanguage),
+    translateBatchWithTokenCheck(secondHalf, targetLanguage),
+  ]);
+
+  return [...firstResults, ...secondResults];
+}
+
+/**
+ * Internal batch translation with retry logic.
+ * This function handles caching and API calls for a single batch.
+ */
+async function translateBatchInternal(
   batch: TranslationBatch,
   targetLanguage: TargetLanguage,
 ): Promise<TranslationBatch> {
@@ -162,22 +231,12 @@ export async function translateBatch(
       `[Attempt ${retries + 1}/${MAX_RETRIES}] Starting translation for ${batch.length} items.`,
     );
 
-    const { cached, toTranslate } = await getCachedTranslations(
-      batch,
-      targetLanguage,
-    );
-
-    if (toTranslate.length === 0) {
-      logger.debug("All items were found in cache. No translation needed.");
-      return cached;
-    }
-
     try {
-      const newResults = await callTranslationApi(toTranslate, targetLanguage);
-      validateResults(newResults, toTranslate.length);
-      await cacheTranslations(newResults, toTranslate, targetLanguage);
+      const newResults = await callTranslationApi(batch, targetLanguage);
+      validateResults(newResults, batch.length);
+      await cacheTranslations(newResults, batch, targetLanguage);
 
-      return [...cached, ...newResults];
+      return newResults;
     } catch (error) {
       retries++;
 
@@ -198,4 +257,33 @@ export async function translateBatch(
       );
     }
   }
+}
+
+/**
+ * Main entry point for batch translation with token safety checking.
+ * Checks cache first, then translates uncached items with automatic
+ * batch splitting if token limits would be exceeded.
+ */
+export async function translateBatch(
+  batch: TranslationBatch,
+  targetLanguage: TargetLanguage,
+): Promise<TranslationBatch> {
+  // First, check the cache for all items
+  const { cached, toTranslate } = await getCachedTranslations(
+    batch,
+    targetLanguage,
+  );
+
+  if (toTranslate.length === 0) {
+    logger.debug("All items were found in cache. No translation needed.");
+    return cached;
+  }
+
+  // Translate uncached items with token safety checking
+  const newResults = await translateBatchWithTokenCheck(
+    toTranslate,
+    targetLanguage,
+  );
+
+  return [...cached, ...newResults];
 }
