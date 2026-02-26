@@ -37,6 +37,21 @@ const languageNames: Record<TargetLanguage, string> = {
   [TargetLanguage.ZH_TW]: "Traditional Chinese (繁體中文)",
 };
 
+// Cache schemas per language to avoid recreating on every API call
+const schemaCache = new Map<
+  TargetLanguage,
+  ReturnType<typeof createTranslationSchemas>
+>();
+
+function getCachedSchemas(targetLanguage: TargetLanguage) {
+  let cached = schemaCache.get(targetLanguage);
+  if (!cached) {
+    cached = createTranslationSchemas(languageNames[targetLanguage]);
+    schemaCache.set(targetLanguage, cached);
+  }
+  return cached;
+}
+
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 5;
 const LLM_MODEL = process.env.LLM_MODEL || "gpt-4.1-mini";
 const LLM_MAX_TOKENS = 32768;
@@ -47,16 +62,36 @@ const CACHE_KEY_MEMOIZATION_LIMIT =
 // Initialize token calculator for the configured model
 const tokenCalculator = new TokenCalculator(LLM_MODEL);
 
+// Register cleanup handler for graceful shutdown
+process.on("exit", () => {
+  tokenCalculator.free();
+});
+
+// Also handle SIGINT and SIGTERM for containerized environments
+process.on("SIGINT", () => {
+  tokenCalculator.free();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  tokenCalculator.free();
+  process.exit(0);
+});
+
 // LRU cache for memoizing cache key computations
 const cacheKeyMemo = new Map<string, string>();
+
+// Pre-computed separator to avoid repeated string creation
+const CACHE_KEY_SEPARATOR = "\x00"; // Use null character as unlikely to appear in text
 
 function getCacheKey(text: string, targetLanguage: TargetLanguage): string {
   // For short texts, use simple string concatenation to avoid hash overhead
   if (text.length < 100) {
-    return `${text}:${targetLanguage}`;
+    return text + CACHE_KEY_SEPARATOR + targetLanguage;
   }
 
-  const memoKey = text + targetLanguage;
+  // Use array join for more efficient string concatenation with separator
+  const memoKey = text + CACHE_KEY_SEPARATOR + targetLanguage;
 
   // Check memoized cache keys
   const memoized = cacheKeyMemo.get(memoKey);
@@ -67,7 +102,7 @@ function getCacheKey(text: string, targetLanguage: TargetLanguage): string {
   // Compute hash and store in memoization cache
   const hash = String(xxh3.xxh128(memoKey));
 
-  // Evict oldest entries if at capacity
+  // Evict oldest entries if at capacity using FIFO approach
   if (cacheKeyMemo.size >= CACHE_KEY_MEMOIZATION_LIMIT) {
     const firstKey = cacheKeyMemo.keys().next().value;
     if (firstKey !== undefined) {
@@ -118,8 +153,11 @@ async function cacheTranslations(
   // Prepare cache entries for batch write
   const cacheEntries: Array<{ key: string; value: string }> = [];
 
+  // Build a Map for O(1) lookups instead of O(n) find() in a loop
+  const toTranslateMap = new Map(toTranslate.map((item) => [item.path, item]));
+
   for (const result of results) {
-    const original = toTranslate.find((item) => item.path === result.path);
+    const original = toTranslateMap.get(result.path);
     if (!original) {
       logger.warn(
         `Translation for ${result.path} not found in original batch.`,
@@ -157,9 +195,7 @@ async function callTranslationApi(
     formattedBatch ?? JSON.stringify({ needToTranslate: toTranslate });
   const startTime = Date.now();
 
-  const { TranslationResultJsonSchema } = createTranslationSchemas(
-    languageNames[targetLanguage],
-  );
+  const { TranslationResultJsonSchema } = getCachedSchemas(targetLanguage);
 
   const completion = await openai.responses.create({
     model: LLM_MODEL,
