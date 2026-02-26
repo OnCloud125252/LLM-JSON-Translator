@@ -10,13 +10,13 @@ import { haveSamePaths, haveSameTypes } from "./json-compare";
  *
  * Required environment variables:
  * - APP_API_KEY: API key for authorization
- * - API_BASE_URL: Server URL (optional, defaults to http://127.0.0.1:3000)
+ * - API_BASE_URL: Server URL (optional, defaults to http://127.0.0.1:3005)
  *
  * Run the test:
- *   bun test modules/__tests__/api-behavior.manual.test.ts
+ *   RUN_MANUAL_TESTS=1 bun test modules/__tests__/api-behavior.manual.test.ts
  */
 
-const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:3000";
+const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:3005";
 const APP_API_KEY = process.env.APP_API_KEY;
 
 interface TranslationRequest {
@@ -56,7 +56,9 @@ async function makeTranslationRequest(
   return { response, data };
 }
 
-describe("Translation API Behavior - Manual Test", () => {
+const describeManual = process.env.RUN_MANUAL_TESTS ? describe : describe.skip;
+
+describeManual("Translation API Behavior - Manual Test", () => {
   let serverAvailable = false;
 
   beforeAll(async () => {
@@ -101,6 +103,36 @@ describe("Translation API Behavior - Manual Test", () => {
         return;
       }
       expect(serverAvailable).toBe(true);
+    });
+  });
+
+  describe("Translation Output", () => {
+    it("should translate text to target language", async () => {
+      if (skipIfUnavailable()) {
+        return;
+      }
+
+      const input = { greeting: "Hello World", farewell: "Goodbye" };
+
+      const { response, data } = await makeTranslationRequest({
+        json: input,
+        targetLanguage: TargetLanguage.ZH_TW,
+      });
+
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+
+      // Text should be translated to Chinese
+      const greeting = (data as { greeting: string }).greeting;
+      const farewell = (data as { farewell: string }).farewell;
+
+      // Verify text is translated (not the original English)
+      expect(greeting).not.toBe("Hello World");
+      expect(farewell).not.toBe("Goodbye");
+
+      // Verify translated text contains Chinese characters
+      expect(/[\u4e00-\u9fff]/.test(greeting)).toBe(true);
+      expect(/[\u4e00-\u9fff]/.test(farewell)).toBe(true);
     });
   });
 
