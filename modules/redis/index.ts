@@ -8,17 +8,30 @@ const logger = new Logger({
 
 const REDIS_KEY_PREFIX = "llm-json-translator";
 
+type CacheBackend = "redis" | "memory";
+
 class RedisClientClass {
   private client: RedisClientType | undefined;
+  private memoryCache: Map<string, string> = new Map();
+  private cacheBackend: CacheBackend = "memory";
 
   async init(redisUrl: string): Promise<void> {
     if (this.client) {
       return;
     }
 
+    if (!redisUrl) {
+      this.cacheBackend = "memory";
+      logger.warn(
+        "Redis URL not configured, using in-memory cache (data will be lost on restart)",
+      );
+      return;
+    }
+
     try {
       this.client = createClient({ url: redisUrl });
       await this.client.connect();
+      this.cacheBackend = "redis";
       logger.info("Connected to Redis");
     } catch (error) {
       logger.error("Failed to connect to Redis", error);
@@ -27,19 +40,32 @@ class RedisClientClass {
   }
 
   async get(key: string): Promise<string | null> {
+    const prefixedKey = `${REDIS_KEY_PREFIX}:${key}`;
+
+    if (this.cacheBackend === "memory") {
+      return this.memoryCache.get(prefixedKey) ?? null;
+    }
+
     if (!this.client) {
       throw new Error("Redis client is not initialized");
     }
 
-    return this.client.get(`${REDIS_KEY_PREFIX}:${key}`);
+    return this.client.get(prefixedKey);
   }
 
   async set(key: string, value: string, ttlInSeconds = 60 * 60): Promise<void> {
+    const prefixedKey = `${REDIS_KEY_PREFIX}:${key}`;
+
+    if (this.cacheBackend === "memory") {
+      this.memoryCache.set(prefixedKey, value);
+      return;
+    }
+
     if (!this.client) {
       throw new Error("Redis client is not initialized");
     }
 
-    await this.client.set(`${REDIS_KEY_PREFIX}:${key}`, value, {
+    await this.client.set(prefixedKey, value, {
       EX: ttlInSeconds,
     });
   }
