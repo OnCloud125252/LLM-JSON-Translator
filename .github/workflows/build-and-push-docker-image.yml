@@ -100,7 +100,8 @@ jobs:
 
       - name: Get image size
         run: |
-          IMAGE_SIZE=$(docker image inspect ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} --format='{{.Size}}')
+          MANIFEST=$(docker buildx imagetools inspect ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} --raw)
+          IMAGE_SIZE=$(echo "$MANIFEST" | jq '.layers | map(.size) | add')
           IMAGE_SIZE_MB=$((IMAGE_SIZE / 1024 / 1024))
           echo "IMAGE_SIZE_MB=$IMAGE_SIZE_MB" >> $GITHUB_ENV
           echo "Image size: ${IMAGE_SIZE_MB}MB"
