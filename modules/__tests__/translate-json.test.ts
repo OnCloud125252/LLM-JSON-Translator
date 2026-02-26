@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { TargetLanguage, TranslationBatch } from "../translate-json";
+import type {
+  TargetLanguage,
+  TranslationBatch,
+  TranslationItem,
+} from "../translate-json";
 import { extractTextFields } from "../translate-json/modules/extract-text-fields";
 import { updateJsonWithTranslations } from "../translate-json/modules/update-json-with-translations";
 import { haveSamePaths, haveSameTypes } from "./json-compare";
@@ -48,11 +52,6 @@ describe("translateJson - Integration Tests", () => {
       translatedItems,
     );
     return translatedJson;
-  }
-
-  interface TranslationItem {
-    path: string;
-    text: string;
   }
 
   describe("Path Preservation", () => {
