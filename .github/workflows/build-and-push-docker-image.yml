@@ -98,6 +98,13 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Get image size
+        run: |
+          IMAGE_SIZE=$(docker image inspect ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} --format='{{.Size}}')
+          IMAGE_SIZE_MB=$((IMAGE_SIZE / 1024 / 1024))
+          echo "IMAGE_SIZE_MB=$IMAGE_SIZE_MB" >> $GITHUB_ENV
+          echo "Image size: ${IMAGE_SIZE_MB}MB"
+
       - name: Post-build summary
         run: |
           CURRENT_TIME=$(date +%s)
@@ -107,6 +114,8 @@ jobs:
           echo "The following tags were pushed:" >> $GITHUB_STEP_SUMMARY
           echo "- \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image size:** ${{ env.IMAGE_SIZE_MB }}MB" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Docker image built and pushed successfully in ${ELAPSED}s." >> $GITHUB_STEP_SUMMARY
 
