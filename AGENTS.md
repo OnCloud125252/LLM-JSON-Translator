@@ -33,6 +33,7 @@ bun start
 
 # Lint and format
 bun run check:fix
+bun run lint:md
 ```
 
 ## Essential Reading
