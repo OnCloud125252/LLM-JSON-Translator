@@ -12,6 +12,7 @@ async function runExample(): Promise<void> {
     targetLanguage: TargetLanguage.ZH_TW,
   });
 
+  // biome-ignore lint/suspicious/noConsoleLog: <explanation>
   console.log(JSON.stringify(translatedJson, null, 2));
 
   process.exit(0);
