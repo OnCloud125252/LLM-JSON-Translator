@@ -28,7 +28,7 @@ const systemPrompts: Record<TargetLanguage, string> = {
 };
 
 const MAX_RETRIES = 5;
-const LLM_MODEL = "gpt-4.1-nano";
+const LLM_MODEL = "gpt-4.1-mini";
 const LLM_MAX_TOKENS = 32768;
 const LLM_TEMPERATURE = 0.8;
 

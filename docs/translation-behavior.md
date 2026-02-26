@@ -193,7 +193,7 @@ When using in-memory cache (no Redis), be aware that:
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| Model | `gpt-4.1-nano` | OpenAI model for translation |
+| Model | `gpt-4.1-mini` | OpenAI model for translation |
 | Max Tokens | 32,768 | Maximum output tokens per request |
 | Temperature | 0.8 | Balance between creativity and consistency |
 
