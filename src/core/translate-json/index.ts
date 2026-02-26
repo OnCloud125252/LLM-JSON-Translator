@@ -8,7 +8,8 @@ const logger = new Logger({
   prefix: "function",
 }).createChild("translate-json");
 
-const CONCURRENT_BATCH_CHUNK_SIZE = 50;
+const CONCURRENT_BATCH_CHUNK_SIZE =
+  Number(process.env.CONCURRENT_BATCH_CHUNK_SIZE) || 50;
 
 export type { TranslationItem, TranslationBatch };
 

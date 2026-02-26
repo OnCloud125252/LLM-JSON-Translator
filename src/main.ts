@@ -13,7 +13,16 @@ import { handleTranslateJsonRequest } from "./server/controller/translateJson";
 dotenvConfig();
 
 const logger = new Logger({ prefix: "web-server" });
-const DEFAULT_BATCH_SIZE = 10;
+
+const DEFAULT_BATCH_SIZE = Number(process.env.BATCH_SIZE) || 10;
+const MAX_BATCH_SIZE = 100;
+
+if (DEFAULT_BATCH_SIZE > MAX_BATCH_SIZE) {
+  logger
+    .createChild("startup")
+    .error(`BATCH_SIZE exceeds maximum allowed (${MAX_BATCH_SIZE})`);
+  throw new Error(`BATCH_SIZE cannot exceed ${MAX_BATCH_SIZE}`);
+}
 
 function verifyAppApiKey(): void {
   if (!process.env.APP_API_KEY) {

@@ -10,13 +10,13 @@ import { TargetLanguage } from "@core/translate-json/modules/translate-batch";
  *
  * Required environment variables:
  * - APP_API_KEY: API key for authorization
- * - API_BASE_URL: Server URL (optional, defaults to http://127.0.0.1:3005)
+ * - API_BASE_URL: Server URL (optional, defaults to http://127.0.0.1:3000)
  *
  * Run the test:
  *   RUN_MANUAL_TESTS=1 bun test src/tests/api-behavior.manual.test.ts
  */
 
-const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:3005";
+const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:3000";
 const APP_API_KEY = process.env.APP_API_KEY;
 
 interface TranslationRequest {

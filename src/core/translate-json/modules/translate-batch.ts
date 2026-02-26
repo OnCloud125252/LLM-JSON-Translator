@@ -35,8 +35,8 @@ const languageNames: Record<TargetLanguage, string> = {
   [TargetLanguage.ZH_TW]: "Traditional Chinese (繁體中文)",
 };
 
-const MAX_RETRIES = 5;
-const LLM_MODEL = "gpt-4.1-mini";
+const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 5;
+const LLM_MODEL = process.env.LLM_MODEL || "gpt-4.1-mini";
 const LLM_MAX_TOKENS = 32768;
 const LLM_TEMPERATURE = 0.8;
 
@@ -159,7 +159,7 @@ export async function translateBatch(
 
   while (true) {
     logger.debug(
-      `[Attempt ${retries + 1}/${MAX_RETRIES + 1}] Starting translation for ${batch.length} items.`,
+      `[Attempt ${retries + 1}/${MAX_RETRIES}] Starting translation for ${batch.length} items.`,
     );
 
     const { cached, toTranslate } = await getCachedTranslations(
