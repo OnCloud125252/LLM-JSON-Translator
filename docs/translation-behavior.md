@@ -141,6 +141,20 @@ The batch size is set server-side and cannot be overridden per request.
 
 ## Caching
 
+### Cache Backends
+
+The translator supports two cache backends:
+
+| Backend | Persistence | TTL | Use Case |
+|---------|-------------|-----|----------|
+| Redis | Persistent | 1 hour (default) | Production |
+| In-memory | Lost on restart | No expiration | Development |
+
+The system automatically selects the backend based on `REDIS_URL` configuration:
+
+- **Redis**: Used when `REDIS_URL` is set and Redis is available
+- **In-memory**: Used when `REDIS_URL` is not set or Redis connection fails
+
 ### Cache Key Generation
 
 Translations are cached using content-addressable storage. The cache key is computed as:
@@ -149,13 +163,13 @@ Translations are cached using content-addressable storage. The cache key is comp
 cacheKey = xxh128(sourceText + targetLanguage)
 ```
 
-Using XXH3-128 hash for fast, collision-resistant keys.
+Using XXH3-128 hash for fast, collision-resistant keys. All keys are prefixed with `llm-json-translator:`.
 
 ### Cache Behavior
 
 - **Hit**: Returns cached translation immediately, no LLM call
 - **Miss**: Translates via LLM, stores result in cache, returns translation
-- **TTL**: Cache entries persist indefinitely (handled by Redis configuration)
+- **TTL**: Redis entries expire after 1 hour by default; in-memory entries never expire
 
 ### Cache Efficiency
 
@@ -164,6 +178,14 @@ The caching strategy ensures:
 - Repeated text across the same JSON is only translated once
 - Common phrases across different requests benefit from cache
 - Cache warming can be done by submitting representative texts
+
+### Development Mode
+
+When using in-memory cache (no Redis), be aware that:
+
+- Cache is cleared when the server restarts
+- Each server instance has its own separate cache (not shared in multi-instance deployments)
+- Suitable for development and testing, not recommended for production
 
 ## Translation Engine
 

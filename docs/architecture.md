@@ -112,11 +112,6 @@ const requestLogger = logger.createChild(requestUuid);
 requestLogger.info("Processing request", { extra: "data" });
 ```
 
-## Code Style (Biome)
+## Code Style
 
-- 2 spaces indentation
-- Double quotes for strings
-- Trailing commas enabled
-- Semicolons required
-- Arrow function parentheses always required
-- Block statements required (no single-line if/for)
+See [docs/agents/code-style.md](docs/agents/code-style.md) for detailed code style conventions.

@@ -3,8 +3,8 @@
 ## Prerequisites
 
 - Bun v1.2.19
-- Docker (for Redis)
 - OpenAI API key
+- Redis (optional - see [Cache Configuration](#cache-configuration))
 
 ## Initial Setup
 
@@ -21,7 +21,7 @@
    bun install
    ```
 
-3. Start Redis:
+3. (Optional) Start Redis if you want persistent caching:
 
    ```bash
    docker compose up -d
@@ -33,9 +33,48 @@
    bun run start:dev
    ```
 
+## Cache Configuration
+
+The translator supports two cache backends:
+
+| Backend | Persistence | Configuration |
+|---------|-------------|---------------|
+| Redis (recommended) | Persistent across restarts | Set `REDIS_URL` environment variable |
+| In-memory | Lost on restart | Leave `REDIS_URL` empty or unset |
+
+### Using Redis (Recommended)
+
+Set the `REDIS_URL` in your `.env` file:
+
+```bash
+REDIS_URL=redis://default:ABC@localhost:10001
+```
+
+### Using In-Memory Cache (Development)
+
+If you don't configure `REDIS_URL`, the server automatically uses an in-memory cache:
+
+```bash
+# Either don't set REDIS_URL, or leave it empty
+# REDIS_URL=
+```
+
+The server logs a warning on startup:
+
+```
+[web-server:redis] Redis URL not configured, using in-memory cache (data will be lost on restart)
+```
+
+**Trade-offs:**
+
+- **In-memory**: Simple setup, no Docker required, but translations are not cached across restarts
+- **Redis**: Requires Docker, but caching persists across server restarts
+
 ## Environment Variables
 
-Create a `.env` file with:
+See [docs/agents/security.md](docs/agents/security.md) for environment variable requirements and security guidelines.
+
+Quick setup for development:
 
 ```bash
 APP_ENVIRONMENT=development
