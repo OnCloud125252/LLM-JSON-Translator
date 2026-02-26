@@ -10,7 +10,8 @@
     "check": "biome check",
     "check:fix": "biome check --fix",
     "check:fix-unsafe": "biome check --fix --unsafe",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint:md": "markdownlint-cli2 --config ~/.markdownlint-cli2.jsonc --fix \"**/*.md\" \"#node_modules\" \"#dist\" \"#docker-utils\""
   },
   "keywords": [],
   "author": "",
