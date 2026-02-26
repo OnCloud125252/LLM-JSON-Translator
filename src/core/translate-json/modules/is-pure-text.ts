@@ -9,115 +9,152 @@ import {
   isISBN, // Checks if the string is an ISBN (version 10 or 13).
   isISIN, // Checks if the string is an ISIN (stock/security identifier).
   isISO8601, // Checks if the string is a valid ISO 8601 date.
-  isLocale, // Checks if the string is a valid locale
   isMobilePhone, // Checks if the string is a mobile phone number.
-  isMongoId,
-  isNumberString, // Checks if the string is a valid hex-encoded representation of a MongoDB ObjectId.
+  isMongoId, // Checks if the string is a valid hex-encoded representation of a MongoDB ObjectId.
+  isNumberString, // Checks if the string is a valid number string.
   isURL, // Checks if the string is an url.
   isUUID, // Checks if the string is a UUID (version 3, 4 or 5).
 } from "class-validator";
-import type { MobilePhoneLocale } from "validator";
+
+// Common ISO-639 language codes that are also common English words
+// We only consider these as locales when they appear with region/script codes (e.g., "en-US")
+const COMMON_LANGUAGE_CODES = new Set([
+  "en",
+  "fr",
+  "de",
+  "es",
+  "it",
+  "pt",
+  "ru",
+  "ja",
+  "ko",
+  "zh",
+  "ar",
+  "hi",
+  "nl",
+  "pl",
+  "tr",
+  "vi",
+  "th",
+  "id",
+  "ms",
+  "sv",
+  "no",
+  "da",
+  "fi",
+  "cs",
+  "hu",
+  "ro",
+  "sk",
+  "bg",
+  "hr",
+  "sr",
+  "sl",
+  "lt",
+  "lv",
+  "et",
+  "is",
+  "ga",
+  "mt",
+  "cy",
+  "eu",
+  "ca",
+  "gl",
+  "ast",
+  "wa",
+  "br",
+  "gd",
+  "gv",
+  "kw",
+  "oc",
+  "sc",
+  "sco",
+  "ang",
+  "enm",
+  "nrf",
+  "pam",
+  "sga",
+  "sux",
+  "tlh",
+  "tok",
+  "vo",
+  "yi",
+  "jv",
+  "su",
+  "min",
+  "bew",
+  "bug",
+  "bjn",
+  "ace",
+  "gor",
+  "tl",
+  "ilo",
+  "pag",
+  "mad",
+  "map",
+  "nan",
+  "wuu",
+  "hsn",
+  "gan",
+  "hak",
+  "yue",
+  "za",
+  "fa",
+  "ur",
+  "he",
+  "tmr",
+  "jpr",
+  "jrb",
+  "lad",
+  "ota",
+  "cu",
+  "chu",
+  "grc",
+  "goh",
+]);
+
+/**
+ * Checks if a string is a valid BCP 47 locale tag.
+ * Uses stricter validation than isLocale from class-validator to avoid
+ * false positives on common words like "google" or "goodbye".
+ */
+function isValidLocale(value: string): boolean {
+  if (typeof value !== "string" || value.length === 0) {
+    return false;
+  }
+
+  // BCP 47 locale pattern: language[-script][-region][-variant][-extensions]
+  // Examples: "en", "en-US", "zh-Hans-CN", "sr-Latn-RS"
+  const bcp47Pattern =
+    /^[a-zA-Z]{2,3}(?:-[a-zA-Z]{4})?(?:-[a-zA-Z]{2}|[0-9]{3})?(?:-[a-zA-Z0-9]{5,8}|[0-9][a-zA-Z0-9]{3})*$/;
+
+  if (!bcp47Pattern.test(value)) {
+    return false;
+  }
+
+  // Split into components
+  const parts = value.split("-");
+  const language = parts[0].toLowerCase();
+
+  // If it's just a language code without region/script, only consider it a locale
+  // if it's NOT a common English word (single/double letters are ok as they can't be words)
+  if (parts.length === 1) {
+    return !COMMON_LANGUAGE_CODES.has(language);
+  }
+
+  // Has region/script/variant - validate the language code exists
+  return true;
+}
+
+/**
+ * Checks if a string is a mobile phone number using class-validator.
+ * Uses the default locale detection which covers most international formats.
+ */
+function isMobilePhoneNumber(value: string): boolean {
+  return isMobilePhone(value);
+}
 
 export function isPureText(value: string): boolean {
-  const isMobilePhoneInAllLocales = (value: string): boolean => {
-    const locales: MobilePhoneLocale[] = [
-      "ar-AE",
-      "ar-BH",
-      "ar-DZ",
-      "ar-EG",
-      "ar-IQ",
-      "ar-JO",
-      "ar-KW",
-      "ar-SA",
-      "ar-SY",
-      "ar-TN",
-      "be-BY",
-      "bg-BG",
-      "bn-BD",
-      "cs-CZ",
-      "da-DK",
-      "de-DE",
-      "de-AT",
-      "el-GR",
-      "en-AU",
-      "en-CA",
-      "en-GB",
-      "en-GG",
-      "en-GH",
-      "en-HK",
-      "en-MO",
-      "en-IE",
-      "en-IN",
-      "en-KE",
-      "en-MT",
-      "en-MU",
-      "en-NG",
-      "en-NZ",
-      "en-PK",
-      "en-RW",
-      "en-SG",
-      "en-SL",
-      "en-UG",
-      "en-US",
-      "en-TZ",
-      "en-ZA",
-      "en-ZM",
-      "es-CL",
-      "es-CR",
-      "es-EC",
-      "es-ES",
-      "es-MX",
-      "es-PA",
-      "es-PY",
-      "es-UY",
-      "et-EE",
-      "fa-IR",
-      "fi-FI",
-      "fj-FJ",
-      "fo-FO",
-      "fr-BE",
-      "fr-FR",
-      "fr-GF",
-      "fr-GP",
-      "fr-MQ",
-      "fr-RE",
-      "he-IL",
-      "hu-HU",
-      "id-ID",
-      "it-IT",
-      "ja-JP",
-      "kk-KZ",
-      "kl-GL",
-      "ko-KR",
-      "lt-LT",
-      "ms-MY",
-      "nb-NO",
-      "ne-NP",
-      "nl-BE",
-      "nl-NL",
-      "nn-NO",
-      "pl-PL",
-      "pt-BR",
-      "pt-PT",
-      "ro-RO",
-      "ru-RU",
-      "sl-SI",
-      "sk-SK",
-      "sr-RS",
-      "sv-SE",
-      "th-TH",
-      "tr-TR",
-      "uk-UA",
-      "vi-VN",
-      "zh-CN",
-      "zh-HK",
-      "zh-MO",
-      "zh-TW",
-    ];
-
-    return locales.some((locale) => isMobilePhone(value, locale));
-  };
-
   return (
     typeof value === "string" &&
     value.trim().length > 0 &&
@@ -134,14 +171,14 @@ export function isPureText(value: string): boolean {
       isISBN(value, 13) ||
       isISIN(value) ||
       isISO8601(value) ||
-      isMobilePhoneInAllLocales(value) ||
+      isMobilePhoneNumber(value) ||
       isMongoId(value) ||
       isNumberString(value) ||
       isURL(value) ||
       isUUID(value, 3) ||
       isUUID(value, 4) ||
       isUUID(value, 5) ||
-      isLocale(value)
+      isValidLocale(value)
     )
   );
 }
