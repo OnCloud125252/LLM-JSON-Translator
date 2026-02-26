@@ -14,6 +14,7 @@
       "**/*.jsx",
       "**/*.json",
       "**/*.css",
+      "!test-performance",
       "!node_modules",
       "!.next",
       "!dist",
