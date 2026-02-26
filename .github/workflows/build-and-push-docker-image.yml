@@ -97,28 +97,12 @@ jobs:
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
             ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          load: true
 
       - name: Get image size
         run: |
-          # Get the formatted output and extract the compressed size line
-          SIZE_LINE=$(docker buildx imagetools inspect ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} 2>/dev/null | grep -E '^\s+Name:' -A 5 | grep 'Size:' | head -1)
-          if [ -n "$SIZE_LINE" ]; then
-            # Extract the size value (format: "Size: 123MB" or "Size: 1.2GB")
-            SIZE_STR=$(echo "$SIZE_LINE" | sed 's/.*Size: \([0-9.]*\)\([A-Za-z]*\).*/\1/')
-            SIZE_UNIT=$(echo "$SIZE_LINE" | sed 's/.*Size: \([0-9.]*\)\([A-Za-z]*\).*/\2/')
-            # Convert to MB
-            case "$SIZE_UNIT" in
-              B) IMAGE_SIZE_MB=$(echo "$SIZE_STR" | awk '{printf "%.0f", $1/1024/1024}') ;;
-              KB) IMAGE_SIZE_MB=$(echo "$SIZE_STR" | awk '{printf "%.0f", $1/1024}') ;;
-              MB) IMAGE_SIZE_MB=$(echo "$SIZE_STR" | awk '{printf "%.0f", $1}') ;;
-              GB) IMAGE_SIZE_MB=$(echo "$SIZE_STR" | awk '{printf "%.0f", $1*1024}') ;;
-              *) IMAGE_SIZE_MB="$SIZE_STR" ;;
-            esac
-          else
-            IMAGE_SIZE_MB="unknown"
-          fi
-          echo "IMAGE_SIZE_MB=$IMAGE_SIZE_MB" >> $GITHUB_ENV
-          echo "Image size: ${IMAGE_SIZE_MB}MB"
+          IMAGE_SIZE=$(docker images ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} --format "{{.Size}}")
+          echo "IMAGE_SIZE=$IMAGE_SIZE" >> $GITHUB_ENV
 
       - name: Post-build summary
         run: |
@@ -130,7 +114,7 @@ jobs:
           echo "- \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image size:** ${{ env.IMAGE_SIZE_MB }}MB" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Size:** ${{ env.IMAGE_SIZE }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Docker image built and pushed successfully in ${ELAPSED}s." >> $GITHUB_STEP_SUMMARY
 
