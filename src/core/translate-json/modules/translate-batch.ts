@@ -1,3 +1,4 @@
+import { cacheStats } from "@core/cache/cache-stats";
 import { ClientError } from "@core/clientError";
 import { Logger } from "@core/logger";
 import { redisClient } from "@core/redis";
@@ -85,22 +86,24 @@ async function getCachedTranslations(
   const cached: TranslationBatch = [];
   const toTranslate: TranslationBatch = [];
 
-  // Parallelize cache lookups for better performance
-  const cachePromises = batch.map(async (item) => {
-    const key = getCacheKey(item.text, targetLanguage);
-    const cachedValue = await redisClient.get(key);
-    return { item, cachedValue };
-  });
+  // Pre-compute all cache keys
+  const keys = batch.map((item) => getCacheKey(item.text, targetLanguage));
 
-  const results = await Promise.all(cachePromises);
+  // Use MGET for single round-trip batch lookup
+  const cachedValues = await redisClient.mget(keys);
 
-  for (const { item, cachedValue } of results) {
+  for (let i = 0; i < batch.length; i++) {
+    const item = batch[i];
+    const cachedValue = cachedValues[i];
+
     if (cachedValue) {
       logger.debug(`Using cached translation for ${item.path}.`);
       cached.push({ path: item.path, text: cachedValue });
+      cacheStats.recordHit();
     } else {
       logger.debug(`Translating ${item.path}.`);
       toTranslate.push(item);
+      cacheStats.recordMiss();
     }
   }
 
@@ -112,13 +115,16 @@ async function cacheTranslations(
   toTranslate: TranslationBatch,
   targetLanguage: TargetLanguage,
 ): Promise<void> {
-  const cachePromises = results.map(async (result) => {
+  // Prepare cache entries for batch write
+  const cacheEntries: Array<{ key: string; value: string }> = [];
+
+  for (const result of results) {
     const original = toTranslate.find((item) => item.path === result.path);
     if (!original) {
       logger.warn(
         `Translation for ${result.path} not found in original batch.`,
       );
-      return;
+      continue;
     }
 
     // Only cache if the text was actually translated (changed)
@@ -126,15 +132,19 @@ async function cacheTranslations(
       logger.debug(
         `Skipping cache for ${original.path} - text unchanged (likely already in target language).`,
       );
-      return;
+      continue;
     }
 
     const key = getCacheKey(original.text, targetLanguage);
-    await redisClient.set(key, result.text);
-    logger.debug(`Cached translation for ${original.path}.`);
-  });
+    cacheEntries.push({ key, value: result.text });
+    logger.debug(`Prepared cache entry for ${original.path}.`);
+  }
 
-  await Promise.all(cachePromises);
+  // Use MSET (pipelined) for single round-trip batch write
+  if (cacheEntries.length > 0) {
+    await redisClient.mset(cacheEntries);
+    logger.debug(`Cached ${cacheEntries.length} translations in batch.`);
+  }
 }
 
 async function callTranslationApi(
